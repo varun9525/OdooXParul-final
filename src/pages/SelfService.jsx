@@ -146,6 +146,17 @@ function SelfService() {
           className="absolute inset-0 w-full h-full object-cover" 
           src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpPnjUoAcMyAnkmHO7rOHijd0SGasb1PZY1SNzgVHPyHClPzCsvnUdv5JbVp-Gto_BeIypUavSEkBtjxjeMQoNvxin6htV2v28wxtB9Bv7mAvfRYMTA8Y_8D33LiQYv-wtVUmGS2WGIX8gMQMy7g97bNMIluuZXbt5uGbuqqg1BLNE5JUYGTZtr4nOBS17wSEuTrDYxEz68v45PNvTfsb7Y63p3wcaoDXdehfXaMJdkN73laFzjvR-" 
         />
+        <div className="absolute top-4 right-4 z-20">
+          <button 
+            onClick={() => {
+              localStorage.removeItem('user');
+              window.location.href = '/login';
+            }}
+            className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-md px-4 py-2 rounded-lg text-xs font-semibold border border-white/20 transition-all active:scale-95"
+          >
+            Staff Login
+          </button>
+        </div>
         <div className="absolute bottom-0 left-0 p-8 md:p-12 z-20">
           <h1 className="text-3xl md:text-5xl font-black text-white mb-2">Welcome to Odoo Cafe</h1>
           <p className="text-white/90 text-sm md:text-lg max-w-lg">Hand-crafted coffee and artisanal pastries, ready for your selection.</p>

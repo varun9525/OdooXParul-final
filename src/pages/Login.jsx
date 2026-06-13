@@ -3,10 +3,24 @@ import { LogIn } from 'lucide-react';
 
 function Login({ onLogin }) {
   const [role, setRole] = useState('employee');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('cashier');
+  const [password, setPassword] = useState('cashier123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const handleRoleChange = (selectedRole) => {
+    setRole(selectedRole);
+    if (selectedRole === 'admin') {
+      setUsername('admin');
+      setPassword('admin123');
+    } else if (selectedRole === 'employee') {
+      setUsername('cashier');
+      setPassword('cashier123');
+    } else if (selectedRole === 'customer') {
+      setUsername('customer');
+      setPassword('customer123');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -109,7 +123,7 @@ function Login({ onLogin }) {
                 <div className="relative">
                   <select 
                     value={role}
-                    onChange={(e) => setRole(e.target.value)}
+                    onChange={(e) => handleRoleChange(e.target.value)}
                     className="w-full bg-[#f3f4f5] border border-[#E9ECEF] rounded-lg px-4 py-3 appearance-none text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#714B67]/20 focus:border-[#714B67] transition-all"
                   >
                     <option value="admin">Administrator (Manager)</option>
