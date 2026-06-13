@@ -47,7 +47,7 @@ export default function(io) {
     const sessionId = req.params.id;
     db.get(`SELECT * FROM sessions WHERE id = ?`, [sessionId], (err, session) => {
       if (err) return res.status(500).json({ error: err.message });
-      db.get(`SELECT SUM(total) as total_sales, COUNT(*) as order_count FROM orders WHERE session_id = ? AND status IN ('Paid', 'To Cook', 'Preparing', 'Completed')`, [sessionId], (err, sales) => {
+      db.get(`SELECT SUM(total) as total_sales, COUNT(*) as order_count FROM orders WHERE session_id = ? AND payment_status = 'Paid'`, [sessionId], (err, sales) => {
         res.json({
           session,
           totalSales: sales?.total_sales || 0.0,

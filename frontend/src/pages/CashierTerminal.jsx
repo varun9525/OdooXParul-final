@@ -70,6 +70,7 @@ function CashierTerminal({ user, onLogout }) {
   // Customer State
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [redeemLoyalty, setRedeemLoyalty] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [newCustName, setNewCustName] = useState('');
   const [newCustEmail, setNewCustEmail] = useState('');
@@ -342,8 +343,13 @@ function CashierTerminal({ user, onLogout }) {
       }
     }
 
-    const finalSubtotal = Math.max(0, subtotalAfterAllPromos - couponDiscount);
-    const totalDiscount = itemDiscountsTotal + orderDiscount + couponDiscount;
+    let loyaltyDiscount = 0;
+    if (redeemLoyalty && selectedCustomer && selectedCustomer.loyalty_points > 0) {
+      loyaltyDiscount = Math.min(subtotalAfterAllPromos - couponDiscount, selectedCustomer.loyalty_points);
+    }
+
+    const finalSubtotal = Math.max(0, subtotalAfterAllPromos - couponDiscount - loyaltyDiscount);
+    const totalDiscount = itemDiscountsTotal + orderDiscount + couponDiscount + loyaltyDiscount;
     const taxRate = 0.08; 
     const tax = finalSubtotal * taxRate;
     const total = finalSubtotal + tax;
@@ -354,6 +360,7 @@ function CashierTerminal({ user, onLogout }) {
       orderDiscount,
       orderPromoName,
       couponDiscount,
+      loyaltyDiscount,
       totalDiscount,
       finalSubtotal,
       tax,
@@ -723,6 +730,12 @@ function CashierTerminal({ user, onLogout }) {
               <span>Table ${order.table_id}</span>
             </div>
             ` : ''}
+            ${order.coupon_code ? `
+            <div class="meta-row">
+              <span>Coupon Code:</span>
+              <span style="font-weight: bold; color: #714B67;">${order.coupon_code}</span>
+            </div>
+            ` : ''}
           </div>
 
           <div class="divider"></div>
@@ -834,7 +847,9 @@ function CashierTerminal({ user, onLogout }) {
         total: totals.total,
         status: activeOrderStatus && activeOrderStatus !== 'Draft' ? activeOrderStatus : 'Completed',
         payment_status: 'Paid',
-        payment_method: paymentMethod + (paymentMethod === 'Card' && cardRef ? ` (Ref: ${cardRef})` : '')
+        payment_method: paymentMethod + (paymentMethod === 'Card' && cardRef ? ` (Ref: ${cardRef})` : ''),
+        coupon_code: appliedCoupon ? appliedCoupon.code : null,
+        redeemed_points: redeemLoyalty ? Math.floor(totals.loyaltyDiscount) : 0
       };
 
       let res;
@@ -889,6 +904,7 @@ function CashierTerminal({ user, onLogout }) {
     setActiveOrderStatus(null);
     setSelectedTable(null);
     setSelectedCustomer(null);
+    setRedeemLoyalty(false);
     setNote('');
     setCouponCode('');
     setAppliedCoupon(null);
@@ -1225,6 +1241,28 @@ function CashierTerminal({ user, onLogout }) {
             </div>
           )}
 
+          {cart.length > 0 && selectedCustomer && (
+            <div className="px-4 py-3 border-t border-[#E9ECEF] bg-white space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-black text-gray-850">Loyalty Rewards</p>
+                  <p className="text-[10px] text-gray-400 font-bold">Balance: {selectedCustomer.loyalty_points || 0} pts (1 pt = ₹1.00)</p>
+                </div>
+                {selectedCustomer.loyalty_points > 0 && (
+                  <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-[#714B67]">
+                    <input 
+                      type="checkbox" 
+                      checked={redeemLoyalty} 
+                      onChange={(e) => setRedeemLoyalty(e.target.checked)}
+                      className="rounded text-[#714B67] focus:ring-[#714B67]"
+                    />
+                    Redeem
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
+
           {cart.length > 0 && (
             <div className="px-4 py-2 border-t border-b border-[#E9ECEF] bg-white">
               <input 
@@ -1259,6 +1297,12 @@ function CashierTerminal({ user, onLogout }) {
                 <div className="flex justify-between text-xs text-green-600 font-bold">
                   <span>Coupon Discount</span>
                   <span>-₹{totals.couponDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              {totals.loyaltyDiscount > 0 && (
+                <div className="flex justify-between text-xs text-green-600 font-bold">
+                  <span>Loyalty Discount</span>
+                  <span>-₹{totals.loyaltyDiscount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-xs text-gray-500 font-bold">

@@ -735,6 +735,168 @@ function AdminDashboard({ user, onLogout }) {
                     </div>
                   </div>
                 </div>
+
+                {/* SVG Charts and Heatmap Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                  {/* Category Breakdown Donut Chart */}
+                  <div className="bg-white border border-[#E9ECEF] p-6 rounded-2xl min-h-[420px] flex flex-col justify-between shadow-sm">
+                    <div>
+                      <h4 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Category Revenue Distribution</h4>
+                      <p className="text-[11px] text-gray-400 font-bold">Sales breakdown across menu categories</p>
+                    </div>
+                    
+                    {(() => {
+                      const sales = stats.categorySales || [];
+                      const totalSum = sales.reduce((sum, item) => sum + item.total_revenue, 0);
+                      
+                      if (totalSum === 0) {
+                        return (
+                          <div className="flex-1 flex flex-col items-center justify-center text-gray-400 text-xs py-8">
+                            <p>No settled sales recorded yet.</p>
+                          </div>
+                        );
+                      }
+
+                      // Colors mapping for categories
+                      const catColors = {
+                        'coffee': '#714B67',
+                        'tea': '#b399a2',
+                        'pastries': '#ddb7ab',
+                        'lunch': '#f5dad2',
+                        'snacks': '#c9a4b3',
+                        'beverages': '#e0c3fc'
+                      };
+
+                      const getCatColor = (catName) => {
+                        const cleanName = catName.toLowerCase().trim();
+                        return catColors[cleanName] || '#95a5a6';
+                      };
+
+                      // Circumference for r=50 is ~314.16
+                      const r = 50;
+                      const C = 2 * Math.PI * r;
+                      let accumulatedOffset = 0;
+
+                      return (
+                        <div className="flex flex-col sm:flex-row items-center justify-around gap-6 py-6">
+                          <div className="relative w-40 h-40">
+                            <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
+                              <circle 
+                                cx="80" 
+                                cy="80" 
+                                r={r} 
+                                fill="transparent" 
+                                stroke="#f3f4f6" 
+                                strokeWidth="20" 
+                              />
+                              {sales.map((item, idx) => {
+                                const percentage = item.total_revenue / totalSum;
+                                const strokeSize = percentage * C;
+                                const strokeOffset = C - accumulatedOffset;
+                                accumulatedOffset += strokeSize;
+
+                                return (
+                                  <circle 
+                                    key={idx}
+                                    cx="80" 
+                                    cy="80" 
+                                    r={r} 
+                                    fill="transparent" 
+                                    stroke={getCatColor(item.category)} 
+                                    strokeWidth="20" 
+                                    strokeDasharray={`${strokeSize} ${C - strokeSize}`}
+                                    strokeDashoffset={strokeOffset}
+                                    className="transition-all duration-300 hover:stroke-[24px] cursor-pointer"
+                                  />
+                                );
+                              })}
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total</span>
+                              <span className="text-sm font-black text-gray-800">₹{totalSum.toFixed(0)}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex-1 space-y-2 text-xs font-semibold w-full">
+                            {sales.map((item, idx) => {
+                              const percentage = (item.total_revenue / totalSum) * 100;
+                              return (
+                                <div key={idx} className="flex items-center justify-between py-1 border-b border-[#f1f3f5] last:border-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getCatColor(item.category) }}></span>
+                                    <span className="text-gray-700 capitalize">{item.category}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-gray-900 font-bold">₹{item.total_revenue.toFixed(2)}</span>
+                                    <span className="text-gray-400 text-[10px] ml-1.5">({percentage.toFixed(1)}%)</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Table popularity heatmap */}
+                  <div className="bg-white border border-[#E9ECEF] p-6 rounded-2xl min-h-[420px] flex flex-col justify-between shadow-sm">
+                    <div>
+                      <h4 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Table Booking Popularity</h4>
+                      <p className="text-[11px] text-gray-400 font-bold">Density heatmap of guest floor bookings</p>
+                    </div>
+
+                    {(() => {
+                      const maxBookings = Math.max(...(stats.tablePopularity?.map(t => t.bookings) || [1]), 1);
+
+                      return (
+                        <div className="flex-1 flex flex-col justify-center py-6">
+                          {tables.length === 0 ? (
+                            <div className="text-gray-400 text-xs text-center py-8">
+                              No tables mapped in store floor plan yet.
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                              {tables.map((table) => {
+                                const popularity = stats.tablePopularity?.find(t => t.table_id === table.id) || { bookings: 0 };
+                                const ratio = maxBookings > 0 ? popularity.bookings / maxBookings : 0;
+                                const alpha = 0.04 + ratio * 0.86;
+                                
+                                return (
+                                  <div 
+                                    key={table.id}
+                                    style={{ 
+                                      backgroundColor: `rgba(113, 75, 103, ${alpha})`,
+                                      borderColor: alpha > 0.4 ? 'transparent' : '#e2e8f0'
+                                    }}
+                                    className="border rounded-2xl p-3 text-center flex flex-col justify-center items-center h-20 transition-all hover:scale-[1.03] shadow-sm select-none relative group cursor-help"
+                                  >
+                                    <span className={`text-xs font-black transition-colors ${alpha > 0.45 ? 'text-white' : 'text-gray-800'}`}>
+                                      T-{table.table_number}
+                                    </span>
+                                    <span className={`text-[9px] font-bold mt-1 transition-colors ${alpha > 0.45 ? 'text-purple-100' : 'text-gray-400'}`}>
+                                      {popularity.bookings} Orders
+                                    </span>
+
+                                    {/* Tooltip */}
+                                    <div className="absolute bottom-full mb-1.5 bg-gray-900 text-white text-[9px] font-bold rounded px-2 py-1 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-md">
+                                      {popularity.bookings} total bookings ({table.seats} seats, {table.floor})
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          <div className="flex justify-end items-center gap-1.5 text-[9px] text-gray-400 font-bold mt-4">
+                            <span>Less Booking</span>
+                            <div className="flex w-20 h-2 rounded bg-gradient-to-r from-purple-50 to-[#714B67] border"></div>
+                            <span>Most Popular</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
             )}
 

@@ -124,7 +124,8 @@ function initializeDatabase() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
-        phone TEXT
+        phone TEXT,
+        loyalty_points INTEGER DEFAULT 0
       )
     `);
 
@@ -155,6 +156,7 @@ function initializeDatabase() {
         status TEXT NOT NULL, -- 'Draft', 'Paid', 'Cancelled'
         payment_method TEXT,
         payment_status TEXT DEFAULT 'Pending',
+        coupon_code TEXT,
         created_at TEXT NOT NULL
       )
     `);
@@ -211,6 +213,16 @@ function initializeDatabase() {
     db.run("ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT 'Pending'", (err) => {
       if (err && !err.message.includes('duplicate column name')) {
         console.error('Migration error orders.payment_status:', err.message);
+      }
+    });
+    db.run("ALTER TABLE orders ADD COLUMN coupon_code TEXT", (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error('Migration error orders.coupon_code:', err.message);
+      }
+    });
+    db.run("ALTER TABLE customers ADD COLUMN loyalty_points INTEGER DEFAULT 0", (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error('Migration error customers.loyalty_points:', err.message);
       }
     });
 

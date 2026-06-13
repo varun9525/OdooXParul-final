@@ -216,7 +216,7 @@ export default function(io, activeSockets) {
     db.all(
       `SELECT substr(created_at, 1, 10) as order_date, SUM(total) as daily_total 
        FROM orders 
-       WHERE status IN ('Paid', 'To Cook', 'Preparing', 'Completed') AND created_at >= ? 
+       WHERE payment_status = 'Paid' AND created_at >= ? 
        GROUP BY order_date`,
       [mondayStr],
       (err, weeklyRows) => {
@@ -234,7 +234,33 @@ export default function(io, activeSockets) {
           };
         });
 
-        db.all(`SELECT * FROM orders WHERE status IN ('Paid', 'To Cook', 'Preparing', 'Completed') AND created_at LIKE ?`, [`${today}%`], (err, ordersRows) => {
+        const sendResponse = (baseData) => {
+          db.all(`
+            SELECT p.category, SUM(oi.price * oi.quantity) as total_revenue
+            FROM order_items oi
+            JOIN products p ON oi.name = p.name
+            JOIN orders o ON oi.order_id = o.id
+            WHERE o.payment_status = 'Paid'
+            GROUP BY p.category
+          `, [], (err, catRows) => {
+            if (err) console.error(err);
+            db.all(`
+              SELECT table_id, COUNT(*) as bookings
+              FROM orders
+              WHERE table_id IS NOT NULL AND payment_status = 'Paid'
+              GROUP BY table_id
+            `, [], (err, tblRows) => {
+              if (err) console.error(err);
+              res.json({
+                ...baseData,
+                categorySales: catRows || [],
+                tablePopularity: tblRows || []
+              });
+            });
+          });
+        };
+
+        db.all(`SELECT * FROM orders WHERE payment_status = 'Paid' AND created_at LIKE ?`, [`${today}%`], (err, ordersRows) => {
           if (err) return res.status(500).json({ error: err.message });
           const todaySales = ordersRows.reduce((sum, o) => sum + o.total, 0.0);
           const ordersToday = ordersRows.length;
@@ -242,7 +268,7 @@ export default function(io, activeSockets) {
           if (ordersRows.length === 0) {
             db.all(`SELECT * FROM products WHERE stock <= 10`, [], (err, stockRows) => {
               if (err) return res.status(500).json({ error: err.message });
-              res.json({
+              sendResponse({
                 todaySales: 0,
                 ordersToday: 0,
                 topProduct: { name: 'None', count: 0 },
@@ -275,7 +301,7 @@ export default function(io, activeSockets) {
             
             db.all(`SELECT * FROM products WHERE stock <= 10`, [], (err, stockRows) => {
               if (err) return res.status(500).json({ error: err.message });
-              res.json({
+              sendResponse({
                 todaySales,
                 ordersToday,
                 topProduct,
@@ -312,7 +338,7 @@ export default function(io, activeSockets) {
 
     const query = `
       SELECT * FROM orders 
-      WHERE status IN ('Paid', 'To Cook', 'Preparing', 'Completed') AND ${dateFilter} ${employeeFilter}
+      WHERE payment_status = 'Paid' AND ${dateFilter} ${employeeFilter}
     `;
 
     db.all(query, [], (err, ordersRows) => {

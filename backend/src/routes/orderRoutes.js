@@ -67,15 +67,17 @@ export default function(io) {
 
   // Create/Draft Order
   router.post('/orders', (req, res) => {
-    const { session_id, table_id, customer_id, items, subtotal, tax, discount_amount, total, status, payment_method } = req.body;
+    const { session_id, table_id, customer_id, items, subtotal, tax, discount_amount, total, status, payment_method, payment_status, coupon_code, redeemed_points } = req.body;
     const createdAt = new Date().toISOString();
+    const payStatus = payment_status || (status === 'Paid' ? 'Paid' : 'Pending');
+    const isSettled = (status === 'Paid' || payStatus === 'Paid');
 
     db.serialize(() => {
       db.run("BEGIN TRANSACTION");
       db.run(
-        `INSERT INTO orders (session_id, table_id, customer_id, items, subtotal, tax, discount_amount, total, status, payment_method, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [session_id || 1, table_id, customer_id, '[]', subtotal, tax, discount_amount || 0.0, total, status || 'Draft', payment_method, createdAt],
+        `INSERT INTO orders (session_id, table_id, customer_id, items, subtotal, tax, discount_amount, total, status, payment_method, payment_status, coupon_code, created_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [session_id || 1, table_id, customer_id, '[]', subtotal, tax, discount_amount || 0.0, total, status || 'Draft', payment_method, payStatus, coupon_code, createdAt],
         function (err) {
           if (err) {
             db.run("ROLLBACK");
@@ -101,15 +103,15 @@ export default function(io) {
 
             // If table is linked, update table status
             if (table_id) {
-              const tableStatus = status === 'Paid' ? 'Inactive' : 'Active';
-              const linkedOrderId = status === 'Paid' ? null : newOrderId;
+              const tableStatus = isSettled ? 'Inactive' : 'Active';
+              const linkedOrderId = isSettled ? null : newOrderId;
               db.run(`UPDATE tables SET status = ?, active_order_id = ? WHERE id = ?`, [tableStatus, linkedOrderId, table_id], (tableErr) => {
                 if (tableErr) console.error('Table sync error:', tableErr);
               });
             }
 
             // Decrement stock if Paid
-            if (status === 'Paid') {
+            if (isSettled) {
               items.forEach((item) => {
                 db.run(
                   `UPDATE products SET stock = MAX(0, stock - ?) WHERE name = ?`,
@@ -124,6 +126,18 @@ export default function(io) {
                   }
                 );
               });
+            }
+
+            // Update loyalty points
+            if (customer_id && isSettled) {
+              const pointsEarned = Math.floor(total / 10);
+              db.run(
+                `UPDATE customers SET loyalty_points = MAX(0, loyalty_points - ? + ?) WHERE id = ?`,
+                [redeemed_points || 0, pointsEarned, customer_id],
+                (loyaltyErr) => {
+                  if (loyaltyErr) console.error('Loyalty points update error:', loyaltyErr);
+                }
+              );
             }
 
             db.run("COMMIT", (commitErr) => {
@@ -144,6 +158,8 @@ export default function(io) {
                 total,
                 status: status || 'Draft',
                 payment_method,
+                payment_status: payStatus,
+                coupon_code,
                 created_at: createdAt
               };
 
@@ -158,15 +174,17 @@ export default function(io) {
 
   // Update Order status / Edit Order
   router.put('/orders/:id', authenticateJWT, authorizeRoles('manager', 'cashier'), (req, res) => {
-    const { status, items, subtotal, tax, discount_amount, total, payment_method } = req.body;
+    const { status, items, subtotal, tax, discount_amount, total, payment_method, payment_status, coupon_code, redeemed_points, customer_id } = req.body;
     const id = req.params.id;
+    const payStatus = payment_status || (status === 'Paid' ? 'Paid' : 'Pending');
+    const isSettled = (status === 'Paid' || payStatus === 'Paid');
 
     if (items) {
       db.serialize(() => {
         db.run("BEGIN TRANSACTION");
         db.run(
-          `UPDATE orders SET subtotal = ?, tax = ?, discount_amount = ?, total = ?, status = ?, payment_method = ? WHERE id = ?`,
-          [subtotal, tax, discount_amount, total, status, payment_method, id],
+          `UPDATE orders SET subtotal = ?, tax = ?, discount_amount = ?, total = ?, status = ?, payment_method = ?, payment_status = ?, coupon_code = ? WHERE id = ?`,
+          [subtotal, tax, discount_amount, total, status, payment_method, payStatus, coupon_code, id],
           function (err) {
             if (err) {
               db.run("ROLLBACK");
@@ -199,17 +217,26 @@ export default function(io) {
                 // Sync table status
                 db.get(`SELECT table_id FROM orders WHERE id = ?`, [id], (err, order) => {
                   if (order && order.table_id) {
-                    const tableStatus = status === 'Paid' ? 'Inactive' : 'Active';
-                    const linkedOrderId = status === 'Paid' ? null : id;
+                    const tableStatus = isSettled ? 'Inactive' : 'Active';
+                    const linkedOrderId = isSettled ? null : id;
                     db.run(`UPDATE tables SET status = ?, active_order_id = ? WHERE id = ?`, [tableStatus, linkedOrderId, order.table_id]);
                   }
                 });
 
                 // Decrement stock if Paid
-                if (status === 'Paid') {
+                if (isSettled) {
                   items.forEach((item) => {
                     db.run(`UPDATE products SET stock = MAX(0, stock - ?) WHERE name = ?`, [item.quantity, item.name]);
                   });
+                }
+
+                // Update loyalty points
+                if (customer_id && isSettled) {
+                  const pointsEarned = Math.floor(total / 10);
+                  db.run(
+                    `UPDATE customers SET loyalty_points = MAX(0, loyalty_points - ? + ?) WHERE id = ?`,
+                    [redeemed_points || 0, pointsEarned, customer_id]
+                  );
                 }
 
                 db.run("COMMIT", (commitErr) => {
@@ -218,7 +245,7 @@ export default function(io) {
                     return res.status(500).json({ error: commitErr.message });
                   }
 
-                  io.emit('order_updated', { id: parseInt(id), status });
+                  io.emit('order_updated', { id: parseInt(id), status, payment_status: payStatus });
                   res.json({ success: true });
                 });
               });
@@ -230,46 +257,67 @@ export default function(io) {
       // Basic status update (e.g. KDS/Payment confirmation)
       db.serialize(() => {
         db.run("BEGIN TRANSACTION");
-        db.run(
-          `UPDATE orders SET status = ? WHERE id = ?`,
-          [status, id],
-          function (err) {
-            if (err) {
-              db.run("ROLLBACK");
-              return res.status(500).json({ error: err.message });
-            }
-            
-            // Sync table status
-            db.get(`SELECT table_id FROM orders WHERE id = ?`, [id], (err, order) => {
-              if (order) {
-                if (order.table_id) {
-                  const tableStatus = status === 'Paid' ? 'Inactive' : 'Active';
-                  const linkedOrderId = status === 'Paid' ? null : id;
-                  db.run(`UPDATE tables SET status = ?, active_order_id = ? WHERE id = ?`, [tableStatus, linkedOrderId, order.table_id]);
-                }
-                if (status === 'Paid') {
-                  db.all(`SELECT name, quantity FROM order_items WHERE order_id = ?`, [id], (err, itemsRows) => {
-                    if (itemsRows) {
-                      itemsRows.forEach((item) => {
-                        db.run(`UPDATE products SET stock = MAX(0, stock - ?) WHERE name = ?`, [item.quantity, item.name]);
-                      });
-                    }
-                  });
-                }
-              }
-            });
-
-            db.run("COMMIT", (commitErr) => {
-              if (commitErr) {
-                db.run("ROLLBACK");
-                return res.status(500).json({ error: commitErr.message });
-              }
-
-              io.emit('order_updated', { id: parseInt(id), status });
-              res.json({ success: true });
-            });
+        db.get(`SELECT * FROM orders WHERE id = ?`, [id], (err, oldOrder) => {
+          if (!oldOrder) {
+            db.run("ROLLBACK");
+            return res.status(404).json({ error: 'Order not found' });
           }
-        );
+
+          const targetStatus = status || oldOrder.status;
+          const targetPayStatus = payment_status || (status === 'Paid' ? 'Paid' : oldOrder.payment_status);
+          const targetCoupon = coupon_code || oldOrder.coupon_code;
+          const targetCustomer = customer_id || oldOrder.customer_id;
+          const isSettled = (targetStatus === 'Paid' || targetPayStatus === 'Paid');
+
+          db.run(
+            `UPDATE orders SET status = ?, payment_status = ?, coupon_code = ? WHERE id = ?`,
+            [targetStatus, targetPayStatus, targetCoupon, id],
+            function (err) {
+              if (err) {
+                db.run("ROLLBACK");
+                return res.status(500).json({ error: err.message });
+              }
+
+              // Sync table status
+              if (oldOrder.table_id) {
+                const tableStatus = isSettled ? 'Inactive' : 'Active';
+                const linkedOrderId = isSettled ? null : id;
+                db.run(`UPDATE tables SET status = ?, active_order_id = ? WHERE id = ?`, [tableStatus, linkedOrderId, oldOrder.table_id]);
+              }
+
+              // Decrement stock if just became paid
+              const wasPaid = (oldOrder.status === 'Paid' || oldOrder.payment_status === 'Paid');
+              if (isSettled && !wasPaid) {
+                db.all(`SELECT name, quantity FROM order_items WHERE order_id = ?`, [id], (err, itemsRows) => {
+                  if (itemsRows) {
+                    itemsRows.forEach((item) => {
+                      db.run(`UPDATE products SET stock = MAX(0, stock - ?) WHERE name = ?`, [item.quantity, item.name]);
+                    });
+                  }
+                });
+
+                // Award / Redeem loyalty points
+                if (targetCustomer) {
+                  const pointsEarned = Math.floor(oldOrder.total / 10);
+                  db.run(
+                    `UPDATE customers SET loyalty_points = MAX(0, loyalty_points - ? + ?) WHERE id = ?`,
+                    [redeemed_points || 0, pointsEarned, targetCustomer]
+                  );
+                }
+              }
+
+              db.run("COMMIT", (commitErr) => {
+                if (commitErr) {
+                  db.run("ROLLBACK");
+                  return res.status(500).json({ error: commitErr.message });
+                }
+
+                io.emit('order_updated', { id: parseInt(id), status: targetStatus, payment_status: targetPayStatus });
+                res.json({ success: true });
+              });
+            }
+          );
+        });
       });
     }
   });

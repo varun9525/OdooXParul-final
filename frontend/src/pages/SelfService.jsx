@@ -305,6 +305,12 @@ function SelfService() {
               <span>Station:</span>
               <span>Self-Service Kiosk</span>
             </div>
+            ${order.coupon_code ? `
+            <div class="meta-row">
+              <span>Coupon Code:</span>
+              <span style="font-weight: bold; color: #714B67;">${order.coupon_code}</span>
+            </div>
+            ` : ''}
           </div>
 
           <div class="divider"></div>
