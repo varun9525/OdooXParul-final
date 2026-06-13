@@ -315,7 +315,7 @@ function CashierTerminal({ user, onLogout }) {
           promoAppliedText = `${matchingPromo.name} (-${matchingPromo.value}%)`;
         } else if (matchingPromo.discount_type === 'fixed') {
           lineDiscount = matchingPromo.value * item.quantity;
-          promoAppliedText = `${matchingPromo.name} (-$${matchingPromo.value}/unit)`;
+          promoAppliedText = `${matchingPromo.name} (-₹${matchingPromo.value}/unit)`;
         }
       }
 
@@ -340,7 +340,7 @@ function CashierTerminal({ user, onLogout }) {
         orderPromoName = `${orderPromo.name} (-${orderPromo.value}%)`;
       } else if (orderPromo.discount_type === 'fixed') {
         orderDiscount = orderPromo.value;
-        orderPromoName = `${orderPromo.name} (-$${orderPromo.value.toFixed(2)})`;
+        orderPromoName = `${orderPromo.name} (-₹${orderPromo.value.toFixed(2)})`;
       }
     }
 
@@ -618,14 +618,14 @@ function CashierTerminal({ user, onLogout }) {
     const itemsHtml = order.items.map(item => `
       <tr style="border-bottom: 1px dashed #E9ECEF; font-size: 13px;">
         <td style="padding: 8px 0; color: #191c1d;">${item.name} x ${item.quantity}</td>
-        <td style="padding: 8px 0; text-align: right; font-weight: bold; color: #714B67;">$${(item.price * item.quantity).toFixed(2)}</td>
+        <td style="padding: 8px 0; text-align: right; font-weight: bold; color: #714B67;">₹${(item.price * item.quantity).toFixed(2)}</td>
       </tr>
     `).join('');
 
     const discountHtml = order.discount_amount > 0 ? `
       <div style="display: flex; justify-content: space-between; font-size: 13px; color: #ba1a1a; font-weight: bold; margin-bottom: 4px;">
         <span>Discounts:</span>
-        <span>-$${order.discount_amount.toFixed(2)}</span>
+        <span>-₹${order.discount_amount.toFixed(2)}</span>
       </div>
     ` : '';
 
@@ -754,16 +754,16 @@ function CashierTerminal({ user, onLogout }) {
           <div class="totals">
             <div class="totals-row">
               <span>Subtotal:</span>
-              <span>$${order.subtotal.toFixed(2)}</span>
+              <span>₹${order.subtotal.toFixed(2)}</span>
             </div>
             <div class="totals-row">
               <span>Tax (8%):</span>
-              <span>$${order.tax.toFixed(2)}</span>
+              <span>₹${order.tax.toFixed(2)}</span>
             </div>
             ${discountHtml}
             <div class="grand-total">
               <span>Grand Total:</span>
-              <span>$${order.total.toFixed(2)}</span>
+              <span>₹${order.total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -826,7 +826,7 @@ function CashierTerminal({ user, onLogout }) {
   const confirmCheckout = async () => {
     const paid = parseFloat(paidAmount) || 0;
     if (paymentMethod === 'Cash' && paid < totals.total) {
-      alert(`Insufficient cash provided. Need at least $${totals.total.toFixed(2)}`);
+      alert(`Insufficient cash provided. Need at least ₹${totals.total.toFixed(2)}`);
       return;
     }
 
@@ -1172,7 +1172,7 @@ function CashierTerminal({ user, onLogout }) {
                     <div className="flex justify-between items-start">
                       <span className="font-bold text-xs text-gray-900 truncate">{item.name}</span>
                       <div className="text-right shrink-0">
-                        <span className="font-bold text-xs text-[#714B67]">${item.lineCost.toFixed(2)}</span>
+                        <span className="font-bold text-xs text-[#714B67]">₹{item.lineCost.toFixed(2)}</span>
                         {item.lineDiscount > 0 && (
                           <div className="text-[10px] text-green-600 font-bold">-{item.promoAppliedText}</div>
                         )}
@@ -1251,33 +1251,33 @@ function CashierTerminal({ user, onLogout }) {
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-gray-500 font-bold">
                 <span>Subtotal</span>
-                <span>${totals.rawSubtotal.toFixed(2)}</span>
+                <span>₹{totals.rawSubtotal.toFixed(2)}</span>
               </div>
               {totals.itemDiscountsTotal > 0 && (
                 <div className="flex justify-between text-xs text-green-600 font-bold">
                   <span>Product Promos</span>
-                  <span>-${totals.itemDiscountsTotal.toFixed(2)}</span>
+                  <span>-₹{totals.itemDiscountsTotal.toFixed(2)}</span>
                 </div>
               )}
               {totals.orderDiscount > 0 && (
                 <div className="flex justify-between text-xs text-green-600 font-bold">
                   <span>Order Promo ({totals.orderPromoName})</span>
-                  <span>-${totals.orderDiscount.toFixed(2)}</span>
+                  <span>-₹{totals.orderDiscount.toFixed(2)}</span>
                 </div>
               )}
               {totals.couponDiscount > 0 && (
                 <div className="flex justify-between text-xs text-green-600 font-bold">
                   <span>Coupon Discount</span>
-                  <span>-${totals.couponDiscount.toFixed(2)}</span>
+                  <span>-₹{totals.couponDiscount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-xs text-gray-500 font-bold">
                 <span>Tax (8.0%)</span>
-                <span>${totals.tax.toFixed(2)}</span>
+                <span>₹{totals.tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-base text-gray-900 pt-2 border-t border-[#E9ECEF] border-dashed font-black">
                 <span>Total Due</span>
-                <span className="text-[#714B67]">${totals.total.toFixed(2)}</span>
+                <span className="text-[#714B67]">₹{totals.total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -1477,7 +1477,7 @@ function CashierTerminal({ user, onLogout }) {
                     }`}
                   >
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-                      $
+                      ₹
                     </div>
                     <span className="text-xs">Cash Payment</span>
                   </button>
@@ -1515,10 +1515,10 @@ function CashierTerminal({ user, onLogout }) {
               <div className="pt-6 border-t border-gray-200">
                 <div className="flex justify-between items-center text-xs text-gray-500 font-bold mb-1">
                   <span>Gross Order Total:</span>
-                  <span>${totals.total.toFixed(2)}</span>
+                  <span>₹{totals.total.toFixed(2)}</span>
                 </div>
                 <div className="text-xl font-black text-gray-900">
-                  Total Due: <span className="text-[#714B67]">${totals.total.toFixed(2)}</span>
+                  Total Due: <span className="text-[#714B67]">₹{totals.total.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -1553,13 +1553,13 @@ function CashierTerminal({ user, onLogout }) {
                         {createdOrderDetails?.items?.map((item, idx) => (
                           <div key={idx} className="flex justify-between">
                             <span>{item.quantity}x {item.name}</span>
-                            <span>${(item.price * item.quantity).toFixed(2)}</span>
+                            <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                           </div>
                         ))}
                       </div>
                       <div className="border-t pt-1.5 flex justify-between font-bold text-[#714B67]">
                         <span>Total Paid</span>
-                        <span>${createdOrderDetails?.total?.toFixed(2) || totals.total.toFixed(2)}</span>
+                        <span>₹{createdOrderDetails?.total?.toFixed(2) || totals.total.toFixed(2)}</span>
                       </div>
                     </div>
 
@@ -1605,7 +1605,7 @@ function CashierTerminal({ user, onLogout }) {
                         <div className="text-center">
                           <p className="text-xs text-gray-500 font-bold">ENTER CASH RECEIVED</p>
                           <div className="text-2xl font-black text-[#714B67] mt-1 bg-[#f3f4f5] px-6 py-2 rounded-xl border">
-                            ${paidAmount || '0.00'}
+                            ₹{paidAmount || '0.00'}
                           </div>
                         </div>
 
@@ -1630,11 +1630,11 @@ function CashierTerminal({ user, onLogout }) {
                         <div className="text-center font-bold text-xs">
                           {parseFloat(paidAmount) >= totals.total ? (
                             <span className="text-green-600">
-                              Change Due: ${(parseFloat(paidAmount) - totals.total).toFixed(2)}
+                              Change Due: ₹{(parseFloat(paidAmount) - totals.total).toFixed(2)}
                             </span>
                           ) : (
                             <span className="text-red-500">
-                              Remaining: ${(totals.total - (parseFloat(paidAmount) || 0)).toFixed(2)}
+                              Remaining: ₹{(totals.total - (parseFloat(paidAmount) || 0)).toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -1671,7 +1671,7 @@ function CashierTerminal({ user, onLogout }) {
                           />
                         </div>
                         <div>
-                          <p className="text-xs font-black text-gray-900">${totals.total.toFixed(2)}</p>
+                          <p className="text-xs font-black text-gray-900">₹{totals.total.toFixed(2)}</p>
                           <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">Scans instantly using PhonePe, GPay, Paytm</p>
                         </div>
                       </div>
@@ -1704,20 +1704,20 @@ function CashierTerminal({ user, onLogout }) {
             <div className="bg-[#f8f9fa] border border-[#E9ECEF] rounded-2xl p-4 space-y-2.5 text-xs font-bold text-gray-600">
               <div className="flex justify-between">
                 <span>Start cash balance:</span>
-                <span>${activeSession.start_balance.toFixed(2)}</span>
+                <span>₹{activeSession.start_balance.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-green-600">
                 <span>Shift paid sales (Cash/Card):</span>
-                <span>+${(sessionSummary?.totalSales || 0.0).toFixed(2)}</span>
+                <span>+₹{(sessionSummary?.totalSales || 0.0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between border-t pt-2 text-gray-900 text-sm">
                 <span>Expected Drawer Total:</span>
-                <span>${(activeSession.start_balance + (sessionSummary?.totalSales || 0.0)).toFixed(2)}</span>
+                <span>₹{(activeSession.start_balance + (sessionSummary?.totalSales || 0.0)).toFixed(2)}</span>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500">Actual Closing cash balance ($)</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500">Actual Closing cash balance (₹)</label>
               <input 
                 type="number"
                 step="0.01"
