@@ -617,23 +617,24 @@ app.post('/api/orders/:id/email-receipt', (req, res) => {
 app.post('/api/reports/dashboard', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { period, employeeId, sessionId, productId } = req.body;
   
-  let dateFilter = '';
+  let dateFilter = '1=1';
+  const queryParams = [];
   const today = new Date().toISOString().split('T')[0];
   
   if (period === 'Today') {
-    dateFilter = `created_at LIKE '${today}%'`;
+    dateFilter = 'created_at LIKE ?';
+    queryParams.push(`${today}%`);
   } else if (period === 'This Week') {
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    dateFilter = `created_at >= '${oneWeekAgo}'`;
+    dateFilter = 'created_at >= ?';
+    queryParams.push(oneWeekAgo);
   } else if (period === 'This Month') {
     const currentMonth = today.slice(0, 7);
-    dateFilter = `created_at LIKE '${currentMonth}%'`;
-  } else {
-    // Default fallback
-    dateFilter = '1=1';
+    dateFilter = 'created_at LIKE ?';
+    queryParams.push(`${currentMonth}%`);
   }
 
-  let employeeFilter = employeeId ? `AND session_id IN (SELECT id FROM sessions)` : ''; 
+  let employeeFilter = employeeId ? 'AND session_id IN (SELECT id FROM sessions)' : ''; 
   let productFilter = ''; // Evaluated in javascript aggregate below
 
   const query = `
@@ -641,7 +642,7 @@ app.post('/api/reports/dashboard', authenticateJWT, authorizeRoles('manager'), (
     WHERE status = 'Paid' AND ${dateFilter} ${employeeFilter}
   `;
 
-  db.all(query, [], (err, rows) => {
+  db.all(query, queryParams, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
 
     const formattedRows = rows.map(r => ({ ...r, items: JSON.parse(r.items) }));
