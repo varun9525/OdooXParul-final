@@ -1086,7 +1086,7 @@ function CashierTerminal({ user, onLogout }) {
                         src={product.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500'} 
                       />
                       <span className="absolute bottom-2 right-2 bg-white px-2 py-0.5 rounded font-black text-xs text-[#714B67] shadow-sm">
-                        ${product.price.toFixed(2)}
+                        ₹{product.price.toFixed(2)}
                       </span>
                       {product.stock <= 5 && (
                         <span className="absolute top-2 left-2 bg-[#ba1a1a] text-white px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
