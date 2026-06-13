@@ -651,17 +651,18 @@ app.post('/api/reports/dashboard', authenticateJWT, authorizeRoles('manager'), (
 
 // --- JWT AUTH LOGIN & SIGNUP ---
 app.post('/api/auth/signup', (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email and password required' });
   }
 
   const hashedPassword = bcrypt.hashSync(password, 10);
   const username = email.split('@')[0];
+  const userRole = role || 'customer';
 
   db.run(
-    `INSERT INTO users (name, username, password, role, archived) VALUES (?, ?, ?, 'manager', 0)`,
-    [name, username, hashedPassword],
+    `INSERT INTO users (name, username, password, role, archived) VALUES (?, ?, ?, ?, 0)`,
+    [name, username, hashedPassword, userRole],
     function (err) {
       if (err) return res.status(400).json({ error: 'Email already registered' });
       res.status(201).json({ success: true });
