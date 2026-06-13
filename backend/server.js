@@ -538,14 +538,16 @@ app.put('/api/orders/:id/kitchen-stage', (req, res) => {
 app.get('/api/dashboard/stats', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   
-  // Calculate start of the week (Monday)
+  // Calculate start of the week (Monday) in UTC
   const current = new Date();
-  const day = current.getDay();
-  const dayDiff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(current);
-  monday.setDate(current.getDate() + dayDiff);
-  monday.setHours(0, 0, 0, 0);
-  const mondayStr = monday.toISOString();
+  const utcYear = current.getUTCFullYear();
+  const utcMonth = current.getUTCMonth();
+  const utcDate = current.getUTCDate();
+  const utcDay = current.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+  
+  const dayDiff = utcDay === 0 ? -6 : 1 - utcDay;
+  const mondayUTC = new Date(Date.UTC(utcYear, utcMonth, utcDate + dayDiff, 0, 0, 0, 0));
+  const mondayStr = mondayUTC.toISOString();
 
   db.all(
     `SELECT substr(created_at, 1, 10) as order_date, SUM(total) as daily_total 
@@ -558,8 +560,8 @@ app.get('/api/dashboard/stats', authenticateJWT, authorizeRoles('manager'), (req
 
       const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       const weeklySales = weekDays.map((dayName, index) => {
-        const d = new Date(monday);
-        d.setDate(monday.getDate() + index);
+        const d = new Date(mondayUTC);
+        d.setUTCDate(mondayUTC.getUTCDate() + index);
         const dateStr = d.toISOString().split('T')[0];
         const row = weeklyRows ? weeklyRows.find(r => r.order_date === dateStr) : null;
         return {
