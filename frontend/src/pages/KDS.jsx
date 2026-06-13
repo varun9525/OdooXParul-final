@@ -56,17 +56,13 @@ function KDS({ onLogout }) {
 
   const fetchKDSOrders = async (shouldAlertOnNew = false) => {
     try {
-      const res = await apiFetch('/api/orders');
+      const res = await apiFetch('/api/orders/kitchen');
       if (res.ok) {
-        const data = await res.json();
-        const kitchenOrders = data.filter(order => 
-          ['To Cook', 'Paid', 'Preparing', 'Completed'].includes(order.status)
-        );
-        
+        const kitchenOrders = await res.json();
         if (shouldAlertOnNew) {
           setOrders(prev => {
             const hasNew = kitchenOrders.some(newOrder => 
-              ['To Cook', 'Paid'].includes(newOrder.status) && 
+              newOrder.status === 'To Cook' && 
               !prev.some(oldOrder => oldOrder.id === newOrder.id)
             );
             if (hasNew) {

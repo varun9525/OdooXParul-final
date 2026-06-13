@@ -40,9 +40,8 @@ app.use('/images', express.static(path.join(__dirname, '../frontend/public/image
 const activeSockets = new Map();
 
 io.use((socket, next) => {
-  const token = socket.handshake.auth?.token || socket.handshake.headers['authorization'];
+  const token = socket.handshake.auth?.token;
   if (!token) {
-    socket.user = { role: 'guest', username: 'anonymous' };
     return next();
   }
   const cleanToken = token.startsWith('Bearer ') ? token.slice(7) : token;

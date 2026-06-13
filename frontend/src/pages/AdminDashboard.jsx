@@ -112,7 +112,7 @@ function AdminDashboard({ user, onLogout }) {
         setStats(statsData);
       }
 
-      const ordersRes = await apiFetch('/api/orders');
+      const ordersRes = await apiFetch('/api/orders?limit=50');
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
         setOrders(ordersData);
@@ -167,7 +167,7 @@ function AdminDashboard({ user, onLogout }) {
       const res = await apiFetch(`/api/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Paid' })
+        body: JSON.stringify({ payment_status: 'Paid' })
       });
       if (res.ok) fetchDashboardData();
     } catch (err) {
@@ -710,11 +710,11 @@ function AdminDashboard({ user, onLogout }) {
                               <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-4 py-3">
                                   <p className="font-black text-gray-900">#POS-{order.id}</p>
-                                  <p className="text-[9px] text-gray-400 font-bold uppercase">{order.status}</p>
+                                  <p className="text-[9px] text-gray-400 font-bold uppercase">{order.status} &bull; {order.payment_status}</p>
                                 </td>
                                 <td className="px-4 py-3 text-[#714B67] font-bold">₹{order.total.toFixed(2)}</td>
                                 <td className="px-4 py-3 text-right">
-                                  {['Paid', 'Completed'].includes(order.status) || order.payment_method ? (
+                                  {order.payment_status === 'Paid' ? (
                                     <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-bold uppercase">
                                       Settled
                                     </span>

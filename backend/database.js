@@ -154,6 +154,7 @@ function initializeDatabase() {
         total REAL NOT NULL,
         status TEXT NOT NULL, -- 'Draft', 'Paid', 'Cancelled'
         payment_method TEXT,
+        payment_status TEXT DEFAULT 'Pending',
         created_at TEXT NOT NULL
       )
     `);
@@ -169,6 +170,12 @@ function initializeDatabase() {
         FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
       )
     `);
+
+    // --- DATABASE INDEXES ---
+    db.run("CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at)");
+    db.run("CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)");
+    db.run("CREATE INDEX IF NOT EXISTS idx_orders_session_id ON orders(session_id)");
+    db.run("CREATE INDEX IF NOT EXISTS idx_products_category ON products(category)");
 
     // --- DATABASE SCHEMA MIGRATIONS (Self-Healing) ---
     db.run("ALTER TABLE products ADD COLUMN uom TEXT DEFAULT 'pcs'", (err) => {
@@ -199,6 +206,11 @@ function initializeDatabase() {
     db.run("ALTER TABLE sessions ADD COLUMN status TEXT DEFAULT 'closed'", (err) => {
       if (err && !err.message.includes('duplicate column name')) {
         console.error('Migration error sessions.status:', err.message);
+      }
+    });
+    db.run("ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT 'Pending'", (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error('Migration error orders.payment_status:', err.message);
       }
     });
 

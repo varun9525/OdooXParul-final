@@ -35,6 +35,36 @@ export default function(io) {
     });
   });
 
+  // Get active kitchen orders
+  router.get('/orders/kitchen', (req, res) => {
+    db.all("SELECT * FROM orders WHERE status IN ('To Cook', 'Preparing', 'Completed') ORDER BY id DESC", [], (err, orderRows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      db.all('SELECT * FROM order_items', [], (err, itemRows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        const itemsByOrderId = {};
+        itemRows.forEach(item => {
+          if (!itemsByOrderId[item.order_id]) {
+            itemsByOrderId[item.order_id] = [];
+          }
+          itemsByOrderId[item.order_id].push({
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity
+          });
+        });
+        
+        const formatted = orderRows.map(order => ({
+          ...order,
+          items: itemsByOrderId[order.id] || []
+        }));
+        
+        res.json(formatted);
+      });
+    });
+  });
+
   // Create/Draft Order
   router.post('/orders', (req, res) => {
     const { session_id, table_id, customer_id, items, subtotal, tax, discount_amount, total, status, payment_method } = req.body;
