@@ -537,38 +537,72 @@ app.put('/api/orders/:id/kitchen-stage', (req, res) => {
 // Get dashboard statistics
 app.get('/api/dashboard/stats', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const today = new Date().toISOString().split('T')[0];
-  db.all(`SELECT * FROM orders WHERE status = 'Paid' AND created_at LIKE ?`, [`${today}%`], (err, ordersRows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    const todaySales = ordersRows.reduce((sum, o) => sum + o.total, 0.0);
-    const ordersToday = ordersRows.length;
-    
-    const productCounts = {};
-    ordersRows.forEach(o => {
-      try {
-        const items = JSON.parse(o.items);
-        items.forEach(item => {
-          productCounts[item.name] = (productCounts[item.name] || 0) + item.quantity;
-        });
-      } catch (e) {}
-    });
-    
-    let topProduct = { name: 'None', count: 0 };
-    Object.entries(productCounts).forEach(([name, count]) => {
-      if (count > topProduct.count) {
-        topProduct = { name, count };
-      }
-    });
-    
-    db.all(`SELECT * FROM products WHERE stock <= 10`, [], (err, stockRows) => {
+  
+  // Calculate start of the week (Monday)
+  const current = new Date();
+  const day = current.getDay();
+  const dayDiff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(current);
+  monday.setDate(current.getDate() + dayDiff);
+  monday.setHours(0, 0, 0, 0);
+  const mondayStr = monday.toISOString();
+
+  db.all(
+    `SELECT substr(created_at, 1, 10) as order_date, SUM(total) as daily_total 
+     FROM orders 
+     WHERE status = 'Paid' AND created_at >= ? 
+     GROUP BY order_date`,
+    [mondayStr],
+    (err, weeklyRows) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({
-        todaySales,
-        ordersToday,
-        topProduct,
-        stockAlerts: stockRows
+
+      const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const weeklySales = weekDays.map((dayName, index) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + index);
+        const dateStr = d.toISOString().split('T')[0];
+        const row = weeklyRows ? weeklyRows.find(r => r.order_date === dateStr) : null;
+        return {
+          day: dayName,
+          total: row ? row.daily_total : 0.0
+        };
       });
-    });
-  });
+
+      db.all(`SELECT * FROM orders WHERE status = 'Paid' AND created_at LIKE ?`, [`${today}%`], (err, ordersRows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const todaySales = ordersRows.reduce((sum, o) => sum + o.total, 0.0);
+        const ordersToday = ordersRows.length;
+        
+        const productCounts = {};
+        ordersRows.forEach(o => {
+          try {
+            const items = JSON.parse(o.items);
+            items.forEach(item => {
+              productCounts[item.name] = (productCounts[item.name] || 0) + item.quantity;
+            });
+          } catch (e) {}
+        });
+        
+        let topProduct = { name: 'None', count: 0 };
+        Object.entries(productCounts).forEach(([name, count]) => {
+          if (count > topProduct.count) {
+            topProduct = { name, count };
+          }
+        });
+        
+        db.all(`SELECT * FROM products WHERE stock <= 10`, [], (err, stockRows) => {
+          if (err) return res.status(500).json({ error: err.message });
+          res.json({
+            todaySales,
+            ordersToday,
+            topProduct,
+            stockAlerts: stockRows,
+            weeklySales
+          });
+        });
+      });
+    }
+  );
 });
 
 // Mock Email Receipt

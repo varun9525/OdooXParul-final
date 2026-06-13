@@ -52,7 +52,16 @@ function AdminDashboard({ user, onLogout }) {
     todaySales: 0,
     ordersToday: 0,
     stockAlerts: [],
-    topProduct: { name: 'None', count: 0 }
+    topProduct: { name: 'None', count: 0 },
+    weeklySales: [
+      { day: 'Mon', total: 0 },
+      { day: 'Tue', total: 0 },
+      { day: 'Wed', total: 0 },
+      { day: 'Thu', total: 0 },
+      { day: 'Fri', total: 0 },
+      { day: 'Sat', total: 0 },
+      { day: 'Sun', total: 0 }
+    ]
   });
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
@@ -645,25 +654,32 @@ function AdminDashboard({ user, onLogout }) {
                       <p className="text-[11px] text-gray-400 font-bold">Daily gross income chart</p>
                     </div>
                     <div className="flex-1 w-full relative flex items-end justify-between gap-4 px-4 pb-4 pt-12">
-                      {[
-                        { day: 'Mon', h: '35%', val: '₹280' },
-                        { day: 'Tue', h: '50%', val: '₹410' },
-                        { day: 'Wed', h: '80%', val: '₹680' },
-                        { day: 'Thu', h: '95%', val: '₹820' },
-                        { day: 'Fri', h: '70%', val: '₹590' },
-                        { day: 'Sat', h: '55%', val: '₹440' },
-                        { day: 'Sun', h: '45%', val: '₹360' }
-                      ].map((bar, i) => (
-                        <div key={i} className="w-full flex flex-col items-center group relative h-full justify-end">
-                          <div className="absolute -top-5 text-[9px] font-bold text-[#714B67] opacity-0 group-hover:opacity-100 transition-opacity">
-                            {bar.val}
-                          </div>
-                          <div className="w-full bg-purple-50 rounded-t-md relative h-full flex items-end overflow-hidden group-hover:bg-purple-100/55 transition-all">
-                            <div className="w-full bg-[#714B67] rounded-t-md transition-all" style={{ height: bar.h }}></div>
-                          </div>
-                          <span className="text-[10px] text-gray-500 font-bold mt-2">{bar.day}</span>
-                        </div>
-                      ))}
+                      {(() => {
+                        const weeklySalesData = stats.weeklySales || [
+                          { day: 'Mon', total: 0 },
+                          { day: 'Tue', total: 0 },
+                          { day: 'Wed', total: 0 },
+                          { day: 'Thu', total: 0 },
+                          { day: 'Fri', total: 0 },
+                          { day: 'Sat', total: 0 },
+                          { day: 'Sun', total: 0 }
+                        ];
+                        const maxSale = Math.max(...weeklySalesData.map(s => s.total), 0);
+                        return weeklySalesData.map((bar, i) => {
+                          const pct = maxSale > 0 ? (bar.total / maxSale) * 100 : 0;
+                          return (
+                            <div key={i} className="w-full flex flex-col items-center group relative h-full justify-end">
+                              <div className="absolute -top-5 text-[9px] font-bold text-[#714B67] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                ₹{bar.total.toFixed(2)}
+                              </div>
+                              <div className="w-full bg-purple-50 rounded-t-md relative h-full flex items-end overflow-hidden group-hover:bg-purple-100/55 transition-all">
+                                <div className="w-full bg-[#714B67] rounded-t-md transition-all" style={{ height: `${pct}%` }}></div>
+                              </div>
+                              <span className="text-[10px] text-gray-500 font-bold mt-2">{bar.day}</span>
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
 
