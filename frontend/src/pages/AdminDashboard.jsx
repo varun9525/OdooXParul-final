@@ -52,7 +52,16 @@ function AdminDashboard({ user, onLogout }) {
     todaySales: 0,
     ordersToday: 0,
     stockAlerts: [],
-    topProduct: { name: 'None', count: 0 }
+    topProduct: { name: 'None', count: 0 },
+    weeklySales: [
+      { day: 'Mon', total: 0 },
+      { day: 'Tue', total: 0 },
+      { day: 'Wed', total: 0 },
+      { day: 'Thu', total: 0 },
+      { day: 'Fri', total: 0 },
+      { day: 'Sat', total: 0 },
+      { day: 'Sun', total: 0 }
+    ]
   });
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
@@ -602,7 +611,7 @@ function AdminDashboard({ user, onLogout }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="bg-white border border-[#E9ECEF] p-6 rounded-2xl relative overflow-hidden shadow-sm">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Today Sales Revenue</p>
-                    <h3 className="text-2xl font-black text-gray-900">${(stats.todaySales || 0).toFixed(2)}</h3>
+                    <h3 className="text-2xl font-black text-gray-900">₹{(stats.todaySales || 0).toFixed(2)}</h3>
                     <div className="flex items-center mt-3 text-emerald-600 font-bold text-[10px] gap-1">
                       <TrendingUp size={12} />
                       <span>Live shift tracking</span>
@@ -645,25 +654,32 @@ function AdminDashboard({ user, onLogout }) {
                       <p className="text-[11px] text-gray-400 font-bold">Daily gross income chart</p>
                     </div>
                     <div className="flex-1 w-full relative flex items-end justify-between gap-4 px-4 pb-4 pt-12">
-                      {[
-                        { day: 'Mon', h: '35%', val: '$280' },
-                        { day: 'Tue', h: '50%', val: '$410' },
-                        { day: 'Wed', h: '80%', val: '$680' },
-                        { day: 'Thu', h: '95%', val: '$820' },
-                        { day: 'Fri', h: '70%', val: '$590' },
-                        { day: 'Sat', h: '55%', val: '$440' },
-                        { day: 'Sun', h: '45%', val: '$360' }
-                      ].map((bar, i) => (
-                        <div key={i} className="w-full flex flex-col items-center group relative h-full justify-end">
-                          <div className="absolute -top-5 text-[9px] font-bold text-[#714B67] opacity-0 group-hover:opacity-100 transition-opacity">
-                            {bar.val}
-                          </div>
-                          <div className="w-full bg-purple-50 rounded-t-md relative h-full flex items-end overflow-hidden group-hover:bg-purple-100/55 transition-all">
-                            <div className="w-full bg-[#714B67] rounded-t-md transition-all" style={{ height: bar.h }}></div>
-                          </div>
-                          <span className="text-[10px] text-gray-500 font-bold mt-2">{bar.day}</span>
-                        </div>
-                      ))}
+                      {(() => {
+                        const weeklySalesData = stats.weeklySales || [
+                          { day: 'Mon', total: 0 },
+                          { day: 'Tue', total: 0 },
+                          { day: 'Wed', total: 0 },
+                          { day: 'Thu', total: 0 },
+                          { day: 'Fri', total: 0 },
+                          { day: 'Sat', total: 0 },
+                          { day: 'Sun', total: 0 }
+                        ];
+                        const maxSale = Math.max(...weeklySalesData.map(s => s.total), 0);
+                        return weeklySalesData.map((bar, i) => {
+                          const pct = maxSale > 0 ? (bar.total / maxSale) * 100 : 0;
+                          return (
+                            <div key={i} className="w-full flex flex-col items-center group relative h-full justify-end">
+                              <div className="absolute -top-5 text-[9px] font-bold text-[#714B67] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                ₹{bar.total.toFixed(2)}
+                              </div>
+                              <div className="w-full bg-purple-50 rounded-t-md relative h-full flex items-end overflow-hidden group-hover:bg-purple-100/55 transition-all">
+                                <div className="w-full bg-[#714B67] rounded-t-md transition-all" style={{ height: `${pct}%` }}></div>
+                              </div>
+                              <span className="text-[10px] text-gray-500 font-bold mt-2">{bar.day}</span>
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
 
@@ -692,7 +708,7 @@ function AdminDashboard({ user, onLogout }) {
                                   <p className="font-black text-gray-900">#POS-{order.id}</p>
                                   <p className="text-[9px] text-gray-400 font-bold uppercase">{order.status}</p>
                                 </td>
-                                <td className="px-4 py-3 text-[#714B67] font-bold">${order.total.toFixed(2)}</td>
+                                <td className="px-4 py-3 text-[#714B67] font-bold">₹{order.total.toFixed(2)}</td>
                                 <td className="px-4 py-3 text-right">
                                   {order.status === 'Paid' ? (
                                     <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-bold uppercase">
@@ -766,7 +782,7 @@ function AdminDashboard({ user, onLogout }) {
                               {prod.category}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-[#714B67] font-bold">${prod.price.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-[#714B67] font-bold">₹{prod.price.toFixed(2)}</td>
                           <td className="px-6 py-4 text-gray-600 font-bold">
                             {prod.stock} {prod.uom}
                           </td>
@@ -915,7 +931,7 @@ function AdminDashboard({ user, onLogout }) {
                           <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[9px] font-bold uppercase">Active</span>
                         </div>
                         <p className="text-xs text-gray-500 font-bold pt-2">
-                          Value: {c.discount_type === 'percent' ? `${c.value}% discount` : `$${c.value.toFixed(2)} off`}
+                          Value: {c.discount_type === 'percent' ? `${c.value}% discount` : `₹${c.value.toFixed(2)} off`}
                         </p>
                       </div>
                     ))}
@@ -962,11 +978,11 @@ function AdminDashboard({ user, onLogout }) {
                               <td className="px-6 py-4 text-gray-500">
                                 {p.type === 'product' 
                                   ? `Buy Min Qty: ${p.min_qty} of "${targetProductName}"`
-                                  : `Min Subtotal >= $${p.min_amount.toFixed(2)}`
+                                  : `Min Subtotal >= ₹${p.min_amount.toFixed(2)}`
                                 }
                               </td>
                               <td className="px-6 py-4 font-bold text-green-600">
-                                {p.discount_type === 'percent' ? `${p.value}% Off` : `$${p.value.toFixed(2)} Off`}
+                                {p.discount_type === 'percent' ? `${p.value}% Off` : `₹${p.value.toFixed(2)} Off`}
                               </td>
                               <td className="px-6 py-4 text-right">
                                 <button
@@ -1112,7 +1128,7 @@ function AdminDashboard({ user, onLogout }) {
                       <div className="space-y-6">
                         <div className="bg-[#714B67] text-white rounded-2xl p-6 shadow-sm">
                           <p className="text-[10px] font-bold uppercase tracking-wider opacity-85">Gross Shift Revenue</p>
-                          <h4 className="text-2xl font-black mt-1">${reportData.revenue.toFixed(2)}</h4>
+                          <h4 className="text-2xl font-black mt-1">₹{reportData.revenue.toFixed(2)}</h4>
                         </div>
                         <div className="bg-white border rounded-2xl p-6 shadow-sm">
                           <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Completed Orders</p>
@@ -1137,7 +1153,7 @@ function AdminDashboard({ user, onLogout }) {
                                   <p className="font-bold text-xs text-gray-900">{p.name}</p>
                                   <p className="text-[10px] text-gray-400 mt-0.5">{p.quantitySold} units sold</p>
                                 </div>
-                                <span className="text-xs font-bold text-[#714B67]">${p.revenue.toFixed(2)}</span>
+                                <span className="text-xs font-bold text-[#714B67]">₹{p.revenue.toFixed(2)}</span>
                               </div>
                             ))}
                           </div>
@@ -1193,7 +1209,7 @@ function AdminDashboard({ user, onLogout }) {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-bold text-gray-400 mb-1">Price ($)</label>
+                      <label className="block font-bold text-gray-400 mb-1">Price (₹)</label>
                       <input 
                         type="number" 
                         step="0.01"
@@ -1322,7 +1338,7 @@ function AdminDashboard({ user, onLogout }) {
                             {prodName || 'Product Title'}
                           </h4>
                           <span className="font-black text-sm text-[#714B67] ml-2 shrink-0">
-                            ${parseFloat(prodPrice || 0).toFixed(2)}
+                            ₹{parseFloat(prodPrice || 0).toFixed(2)}
                           </span>
                         </div>
 
@@ -1500,7 +1516,7 @@ function AdminDashboard({ user, onLogout }) {
                     className="w-full border rounded-xl px-3 py-2 font-semibold text-sm"
                   >
                     <option value="percent">Percent (%)</option>
-                    <option value="fixed">Fixed ($)</option>
+                    <option value="fixed">Fixed (₹)</option>
                   </select>
                 </div>
                 <div>
@@ -1582,7 +1598,7 @@ function AdminDashboard({ user, onLogout }) {
                   </div>
                 ) : (
                   <div>
-                    <label className="block font-bold text-gray-400 mb-1">Min Subtotal ($)</label>
+                    <label className="block font-bold text-gray-400 mb-1">Min Subtotal (₹)</label>
                     <input 
                       type="number" 
                       step="0.10"
@@ -1615,7 +1631,7 @@ function AdminDashboard({ user, onLogout }) {
                     className="w-full border rounded-xl px-3 py-2 font-semibold text-sm"
                   >
                     <option value="percent">Percentage (%)</option>
-                    <option value="fixed">Fixed Cash Amount ($)</option>
+                    <option value="fixed">Fixed Cash Amount (₹)</option>
                   </select>
                 </div>
                 <div>

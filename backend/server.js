@@ -537,38 +537,74 @@ app.put('/api/orders/:id/kitchen-stage', (req, res) => {
 // Get dashboard statistics
 app.get('/api/dashboard/stats', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const today = new Date().toISOString().split('T')[0];
-  db.all(`SELECT * FROM orders WHERE status = 'Paid' AND created_at LIKE ?`, [`${today}%`], (err, ordersRows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    const todaySales = ordersRows.reduce((sum, o) => sum + o.total, 0.0);
-    const ordersToday = ordersRows.length;
-    
-    const productCounts = {};
-    ordersRows.forEach(o => {
-      try {
-        const items = JSON.parse(o.items);
-        items.forEach(item => {
-          productCounts[item.name] = (productCounts[item.name] || 0) + item.quantity;
-        });
-      } catch (e) {}
-    });
-    
-    let topProduct = { name: 'None', count: 0 };
-    Object.entries(productCounts).forEach(([name, count]) => {
-      if (count > topProduct.count) {
-        topProduct = { name, count };
-      }
-    });
-    
-    db.all(`SELECT * FROM products WHERE stock <= 10`, [], (err, stockRows) => {
+  
+  // Calculate start of the week (Monday) in UTC
+  const current = new Date();
+  const utcYear = current.getUTCFullYear();
+  const utcMonth = current.getUTCMonth();
+  const utcDate = current.getUTCDate();
+  const utcDay = current.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+  
+  const dayDiff = utcDay === 0 ? -6 : 1 - utcDay;
+  const mondayUTC = new Date(Date.UTC(utcYear, utcMonth, utcDate + dayDiff, 0, 0, 0, 0));
+  const mondayStr = mondayUTC.toISOString();
+
+  db.all(
+    `SELECT substr(created_at, 1, 10) as order_date, SUM(total) as daily_total 
+     FROM orders 
+     WHERE status = 'Paid' AND created_at >= ? 
+     GROUP BY order_date`,
+    [mondayStr],
+    (err, weeklyRows) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({
-        todaySales,
-        ordersToday,
-        topProduct,
-        stockAlerts: stockRows
+
+      const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const weeklySales = weekDays.map((dayName, index) => {
+        const d = new Date(mondayUTC);
+        d.setUTCDate(mondayUTC.getUTCDate() + index);
+        const dateStr = d.toISOString().split('T')[0];
+        const row = weeklyRows ? weeklyRows.find(r => r.order_date === dateStr) : null;
+        return {
+          day: dayName,
+          total: row ? row.daily_total : 0.0
+        };
       });
-    });
-  });
+
+      db.all(`SELECT * FROM orders WHERE status = 'Paid' AND created_at LIKE ?`, [`${today}%`], (err, ordersRows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const todaySales = ordersRows.reduce((sum, o) => sum + o.total, 0.0);
+        const ordersToday = ordersRows.length;
+        
+        const productCounts = {};
+        ordersRows.forEach(o => {
+          try {
+            const items = JSON.parse(o.items);
+            items.forEach(item => {
+              productCounts[item.name] = (productCounts[item.name] || 0) + item.quantity;
+            });
+          } catch (e) {}
+        });
+        
+        let topProduct = { name: 'None', count: 0 };
+        Object.entries(productCounts).forEach(([name, count]) => {
+          if (count > topProduct.count) {
+            topProduct = { name, count };
+          }
+        });
+        
+        db.all(`SELECT * FROM products WHERE stock <= 10`, [], (err, stockRows) => {
+          if (err) return res.status(500).json({ error: err.message });
+          res.json({
+            todaySales,
+            ordersToday,
+            topProduct,
+            stockAlerts: stockRows,
+            weeklySales
+          });
+        });
+      });
+    }
+  );
 });
 
 // Mock Email Receipt
@@ -684,6 +720,42 @@ app.post('/api/auth/login', (req, res) => {
     const token = jwt.sign({ id: user.id, username: user.username, role: user.role, name: user.name }, JWT_SECRET);
     res.json({ token, role: user.role, username: user.username, name: user.name });
   });
+});
+
+app.post('/api/auth/forgot-password', (req, res) => {
+  const { usernameOrEmail, newPassword } = req.body;
+
+  if (!usernameOrEmail || !newPassword) {
+    return res.status(400).json({ error: 'Username/email and new password are required' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+  }
+
+  const normalizedUsername = usernameOrEmail.includes('@')
+    ? usernameOrEmail.split('@')[0]
+    : usernameOrEmail;
+
+  db.get(
+    'SELECT id, archived FROM users WHERE username = ? OR username = ?',
+    [usernameOrEmail, normalizedUsername],
+    (err, user) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      if (!user) return res.status(404).json({ error: 'Account not found' });
+      if (user.archived) return res.status(403).json({ error: 'Account archived' });
+
+      const hashedPassword = bcrypt.hashSync(newPassword, 10);
+      db.run(
+        'UPDATE users SET password = ? WHERE id = ?',
+        [hashedPassword, user.id],
+        function (updateErr) {
+          if (updateErr) return res.status(500).json({ error: 'Could not update password' });
+          res.json({ success: true, message: 'Password updated successfully' });
+        }
+      );
+    }
+  );
 });
 
 // Socket.io Connection

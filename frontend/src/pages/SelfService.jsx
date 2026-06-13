@@ -85,6 +85,7 @@ function SelfService() {
       }
       return [...prev, { ...product, quantity: 1 }];
     });
+    setShowCart(true);
   };
 
   const updateQuantity = (productId, delta) => {
@@ -192,14 +193,14 @@ function SelfService() {
     const itemsHtml = order.items.map(item => `
       <tr style="border-bottom: 1px dashed #E9ECEF; font-size: 13px;">
         <td style="padding: 8px 0; color: #191c1d;">${item.name} x ${item.quantity}</td>
-        <td style="padding: 8px 0; text-align: right; font-weight: bold; color: #714B67;">$${(item.price * item.quantity).toFixed(2)}</td>
+        <td style="padding: 8px 0; text-align: right; font-weight: bold; color: #714B67;">₹${(item.price * item.quantity).toFixed(2)}</td>
       </tr>
     `).join('');
 
     const discountHtml = order.discount_amount > 0 ? `
       <div style="display: flex; justify-content: space-between; font-size: 13px; color: #ba1a1a; font-weight: bold; margin-bottom: 4px;">
         <span>Discounts:</span>
-        <span>-$${order.discount_amount.toFixed(2)}</span>
+        <span>-₹${order.discount_amount.toFixed(2)}</span>
       </div>
     ` : '';
 
@@ -322,16 +323,16 @@ function SelfService() {
           <div class="totals">
             <div class="totals-row">
               <span>Subtotal:</span>
-              <span>$${order.subtotal.toFixed(2)}</span>
+              <span>₹${order.subtotal.toFixed(2)}</span>
             </div>
             <div class="totals-row">
               <span>Tax (8%):</span>
-              <span>$${order.tax.toFixed(2)}</span>
+              <span>₹${order.tax.toFixed(2)}</span>
             </div>
             ${discountHtml}
             <div class="grand-total">
               <span>Grand Total:</span>
-              <span>$${order.total.toFixed(2)}</span>
+              <span>₹${order.total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -359,7 +360,9 @@ function SelfService() {
   };
 
   return (
-    <div className="bg-[#f8f9fa] text-[#191c1d] min-h-screen flex flex-col font-sans relative">
+    <div className={`bg-[#f8f9fa] text-[#191c1d] min-h-screen flex flex-col font-sans relative transition-all duration-300 ${
+      showCart ? 'lg:pr-[384px]' : ''
+    }`}>
       <header className="relative w-full h-[320px] min-h-[280px] overflow-hidden shrink-0">
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent z-10"></div>
         <img 
@@ -439,7 +442,7 @@ function SelfService() {
                   src={product.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500'} 
                 />
                 <span className="absolute bottom-2 right-2 bg-white px-2.5 py-1 rounded-xl font-black text-sm text-[#714B67] shadow-sm">
-                  ${product.price.toFixed(2)}
+                  ₹{product.price.toFixed(2)}
                 </span>
                 {product.stock === 0 && (
                   <span className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black text-xs uppercase tracking-wider">
@@ -468,7 +471,7 @@ function SelfService() {
         </div>
       </main>
 
-      {cart.length > 0 && (
+      {cart.length > 0 && !showCart && (
         <div className="fixed bottom-6 right-6 z-50">
           <button 
             onClick={() => setShowCart(true)}
@@ -498,7 +501,7 @@ function SelfService() {
             <div key={item.id} className="flex items-center gap-3 p-3.5 bg-[#f3f4f5] rounded-2xl border">
               <div className="flex-grow min-w-0">
                 <h4 className="font-bold text-xs text-gray-900 truncate">{item.name}</h4>
-                <span className="text-[#714B67] font-bold text-xs">${(item.price * item.quantity).toFixed(2)}</span>
+                <span className="text-[#714B67] font-bold text-xs">₹{(item.price * item.quantity).toFixed(2)}</span>
               </div>
               <div className="flex items-center gap-1 bg-white rounded-xl border p-0.5">
                 <button 
@@ -522,11 +525,11 @@ function SelfService() {
         <div className="p-6 bg-[#f8f9fa] border-t border-[#E9ECEF] space-y-4 shrink-0">
           <div className="flex justify-between items-center text-xs text-gray-500 font-bold">
             <span>Sales Tax (8%)</span>
-            <span>${getTax().toFixed(2)}</span>
+            <span>₹{getTax().toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-center border-t border-dashed pt-3">
             <span className="font-bold text-sm text-gray-900">Total Bill</span>
-            <span className="font-black text-lg text-[#714B67]">${getTotal().toFixed(2)}</span>
+            <span className="font-black text-lg text-[#714B67]">₹{getTotal().toFixed(2)}</span>
           </div>
           <button 
             onClick={() => { setShowCart(false); setShowPaymentModal(true); }}
@@ -539,7 +542,7 @@ function SelfService() {
       </div>
 
       {showCart && (
-        <div className="fixed inset-0 bg-black/40 z-[55] transition-opacity" onClick={() => setShowCart(false)}></div>
+        <div className="fixed inset-0 bg-black/40 z-[55] transition-opacity lg:hidden" onClick={() => setShowCart(false)}></div>
       )}
 
       {showPaymentModal && (
@@ -593,7 +596,7 @@ function SelfService() {
 
               <div className="pt-4 border-t">
                 <span className="text-[11px] text-gray-400 font-bold block uppercase">Grand Total due:</span>
-                <span className="text-2xl font-black text-[#714B67]">${getTotal().toFixed(2)}</span>
+                <span className="text-2xl font-black text-[#714B67]">₹{getTotal().toFixed(2)}</span>
               </div>
             </div>
 
@@ -701,13 +704,13 @@ function SelfService() {
                 {createdOrderDetails?.items?.map((item, idx) => (
                   <div key={idx} className="flex justify-between">
                     <span>{item.quantity}x {item.name}</span>
-                    <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                    <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
               <div className="border-t border-dashed pt-2 flex justify-between font-bold text-[#714B67]">
                 <span>Total Settled</span>
-                <span>$${createdOrderDetails?.total?.toFixed(2)}</span>
+                <span>₹{createdOrderDetails?.total?.toFixed(2)}</span>
               </div>
             </div>
 
