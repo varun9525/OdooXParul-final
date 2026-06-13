@@ -122,7 +122,6 @@ function SelfService() {
   // Dynamic UPI Payment payload
   const getUPIString = () => {
     const totalAmount = getTotal().toFixed(2);
-    // Standard UPI merchant ID fallback
     return `upi://pay?pa=cafe@ybl&pn=OdooCafeCustomer&am=${totalAmount}&cu=INR&tn=KioskRef-${Date.now().toString().slice(-6)}`;
   };
 
@@ -131,7 +130,6 @@ function SelfService() {
     if (e) e.preventDefault();
     if (cart.length === 0) return;
 
-    // Basic Validation for cards
     if (paymentMethod !== 'UPI QR') {
       if (!cardHolder.trim() || !cardNumber.trim() || !cardExpiry.trim() || !cardCVV.trim()) {
         alert('Please complete all card credential fields.');
@@ -150,7 +148,7 @@ function SelfService() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          session_id: 1, // Kiosk default session
+          session_id: 1, 
           items: cart.map(item => ({
             name: item.name,
             price: item.price,
@@ -171,15 +169,12 @@ function SelfService() {
       const orderData = await response.json();
       setCreatedOrderDetails(orderData);
 
-      // Clean states
       setCart([]);
       setShowCart(false);
       setShowPaymentModal(false);
       
-      // Open Success Modal
       setOrderCompleted(true);
       
-      // Reset card inputs
       setCardHolder('');
       setCardNumber('');
       setCardExpiry('');
@@ -365,8 +360,6 @@ function SelfService() {
 
   return (
     <div className="bg-[#f8f9fa] text-[#191c1d] min-h-screen flex flex-col font-sans relative">
-      
-      {/* Hero Welcome banner */}
       <header className="relative w-full h-[320px] min-h-[280px] overflow-hidden shrink-0">
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent z-10"></div>
         <img 
@@ -380,7 +373,7 @@ function SelfService() {
               localStorage.removeItem('user');
               window.location.href = '/login';
             }}
-            className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-md px-4 py-2 rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95 animate-in fade-in"
+            className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-md px-4 py-2 rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95"
           >
             Staff Login
           </button>
@@ -395,7 +388,6 @@ function SelfService() {
         </div>
       </header>
 
-      {/* Sticky Categories Navigation */}
       <nav className="sticky top-0 z-40 bg-white shadow-sm overflow-x-auto flex items-center px-6 md:px-12 py-3.5 gap-6 hide-scrollbar border-b border-[#E9ECEF] shrink-0">
         <button 
           onClick={() => setActiveCategory('all')}
@@ -433,7 +425,6 @@ function SelfService() {
         ))}
       </nav>
 
-      {/* Products Grid */}
       <main className="flex-grow p-6 md:p-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
@@ -477,7 +468,6 @@ function SelfService() {
         </div>
       </main>
 
-      {/* Floating Kiosk Basket Button */}
       {cart.length > 0 && (
         <div className="fixed bottom-6 right-6 z-50">
           <button 
@@ -493,7 +483,6 @@ function SelfService() {
         </div>
       )}
 
-      {/* Mini Cart Sidebar Drawer */}
       <div className={`fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl z-[60] transform transition-transform duration-300 flex flex-col ${
         showCart ? 'translate-x-0' : 'translate-x-full'
       }`}>
@@ -549,17 +538,13 @@ function SelfService() {
         </div>
       </div>
 
-      {/* Cart Backdrop */}
       {showCart && (
         <div className="fixed inset-0 bg-black/40 z-[55] transition-opacity" onClick={() => setShowCart(false)}></div>
       )}
 
-      {/* 1. CUSTOMER PAYMENT MODAL FOR KIOSK */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[520px]">
-            
-            {/* Left Options pane */}
             <div className="w-full md:w-5/12 bg-[#f8f9fa] border-r border-gray-100 p-6 flex flex-col justify-between">
               <div className="space-y-4">
                 <div>
@@ -612,7 +597,6 @@ function SelfService() {
               </div>
             </div>
 
-            {/* Right Pane Details input */}
             <div className="flex-1 p-6 flex flex-col justify-between overflow-y-auto">
               <div className="flex justify-between items-center border-b pb-3 shrink-0">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-gray-700">{paymentMethod} Gateway</h4>
@@ -623,7 +607,6 @@ function SelfService() {
                 {paymentMethod === 'UPI QR' ? (
                   <div className="text-center space-y-4">
                     <p className="font-bold text-xs text-gray-600">Scan code on your mobile device</p>
-                    
                     <div className="w-[180px] h-[180px] bg-white border rounded-2xl flex items-center justify-center p-2 mx-auto shadow-sm">
                       <img 
                         alt="UPI Payment QR" 
@@ -631,7 +614,6 @@ function SelfService() {
                         className="w-full h-full"
                       />
                     </div>
-                    
                     <p className="text-[10px] text-gray-400 font-bold uppercase">Transaction will verify on scan completion</p>
                   </div>
                 ) : (
@@ -694,12 +676,10 @@ function SelfService() {
                 Confirm Payment & Checkout
               </button>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* 2. ORDER SUCCESS & PRINT PDF BILL POPUP */}
       {orderCompleted && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-6 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl flex flex-col items-center space-y-5">
@@ -712,7 +692,6 @@ function SelfService() {
               <p className="text-gray-500 text-xs mt-1">Your order has been sent to the kitchen. Please pick up your ticket below.</p>
             </div>
 
-            {/* Tiny receipt visual */}
             <div className="bg-[#f8f9fa] border rounded-2xl p-4 w-full text-left text-xs font-semibold space-y-1.5">
               <div className="flex justify-between font-black text-gray-700 border-b pb-1">
                 <span>Receipt Summary</span>
@@ -732,7 +711,6 @@ function SelfService() {
               </div>
             </div>
 
-            {/* Receipt Print / PDF triggers */}
             <div className="flex gap-3 w-full">
               <button
                 onClick={() => printReceiptPDF(createdOrderDetails)}
@@ -756,7 +734,6 @@ function SelfService() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

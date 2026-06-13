@@ -279,13 +279,10 @@ function CashierTerminal({ user, onLogout }) {
     let itemDiscountsTotal = 0;
     let lineItems = [];
 
-    // 1. Process Product-level promotions and calculate raw totals
     cart.forEach(item => {
       const lineCost = item.price * item.quantity;
       rawSubtotal += lineCost;
 
-      // Find if there is a product promotion for this item
-      // Seed data: Matcha Promo (product_id = 5, min_qty = 2, percent, 20)
       const matchingPromo = promotions.find(p => p.type === 'product' && p.product_id === item.id);
       let lineDiscount = 0;
       let promoAppliedText = '';
@@ -311,8 +308,6 @@ function CashierTerminal({ user, onLogout }) {
 
     const subtotalAfterProductPromos = rawSubtotal - itemDiscountsTotal;
 
-    // 2. Process Order-level promotions
-    // Seed data: Big Order Promo (min_amount = 30.0, fixed, 3.0)
     let orderDiscount = 0;
     let orderPromoName = '';
     const orderPromo = promotions.find(p => p.type === 'order' && subtotalAfterProductPromos >= p.min_amount);
@@ -329,7 +324,6 @@ function CashierTerminal({ user, onLogout }) {
 
     const subtotalAfterAllPromos = subtotalAfterProductPromos - orderDiscount;
 
-    // 3. Process Coupon code
     let couponDiscount = 0;
     if (appliedCoupon) {
       if (appliedCoupon.discount_type === 'percent') {
@@ -341,7 +335,7 @@ function CashierTerminal({ user, onLogout }) {
 
     const finalSubtotal = Math.max(0, subtotalAfterAllPromos - couponDiscount);
     const totalDiscount = itemDiscountsTotal + orderDiscount + couponDiscount;
-    const taxRate = 0.08; // 8%
+    const taxRate = 0.08; 
     const tax = finalSubtotal * taxRate;
     const total = finalSubtotal + tax;
 
@@ -388,7 +382,7 @@ function CashierTerminal({ user, onLogout }) {
 
   // ------------------ FLOOR & TABLE SELECTION ------------------
   const openTableSelect = () => {
-    loadPOSData(); // Reload tables
+    loadPOSData(); 
     setShowTableModal(true);
   };
 
@@ -396,7 +390,6 @@ function CashierTerminal({ user, onLogout }) {
     setSelectedTable(table);
     setShowTableModal(false);
 
-    // If table has an active order, load it!
     if (table.active_order_id) {
       try {
         const res = await fetch('/api/orders');
@@ -407,7 +400,6 @@ function CashierTerminal({ user, onLogout }) {
             setActiveOrderId(activeOrder.id);
             setNote(activeOrder.note || '');
             
-            // Map items back to cart items (which contain images/categories from products list)
             const mappedCart = activeOrder.items.map(item => {
               const baseProd = products.find(p => p.name === item.name) || {};
               return {
@@ -420,7 +412,6 @@ function CashierTerminal({ user, onLogout }) {
             });
             setCart(mappedCart);
             
-            // Fetch customer if linked
             if (activeOrder.customer_id) {
               const cust = customers.find(c => c.id === activeOrder.customer_id);
               if (cust) setSelectedCustomer(cust);
@@ -435,7 +426,6 @@ function CashierTerminal({ user, onLogout }) {
       }
     }
 
-    // Otherwise, clear the cart for the new table order
     setCart([]);
     setActiveOrderId(null);
     setSelectedCustomer(null);
@@ -457,7 +447,6 @@ function CashierTerminal({ user, onLogout }) {
     try {
       let orderId = activeOrderId;
       
-      // If we don't have a saved draft order ID, create a Draft order first
       if (!orderId) {
         const orderRes = await fetch('/api/orders', {
           method: 'POST',
@@ -483,7 +472,6 @@ function CashierTerminal({ user, onLogout }) {
         orderId = newOrder.id;
         setActiveOrderId(orderId);
       } else {
-        // Update existing draft order
         const updateRes = await fetch(`/api/orders/${orderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -503,11 +491,10 @@ function CashierTerminal({ user, onLogout }) {
         if (!updateRes.ok) throw new Error('Could not update draft order');
       }
 
-      // Notify kitchen display stage 'To Cook'
       const kitRes = await fetch(`/api/orders/${orderId}/kitchen`, { method: 'POST' });
       if (kitRes.ok) {
         alert('Order successfully sent to kitchen!');
-        loadPOSData(); // Reload table states
+        loadPOSData(); 
       } else {
         alert('Failed to alert kitchen.');
       }
@@ -796,7 +783,6 @@ function CashierTerminal({ user, onLogout }) {
     if (val === '.') {
       if (!paidAmount.includes('.')) setPaidAmount(prev => prev + '.');
     } else {
-      // If we overwrite default total:
       if (paidAmount === totals.total.toFixed(2)) {
         setPaidAmount(val);
       } else {
@@ -810,7 +796,6 @@ function CashierTerminal({ user, onLogout }) {
   };
 
   const getUPIString = () => {
-    // Look up dynamic merchant UPI ID from database (Payment methods seeded: 'cafe@ybl')
     const upiMethod = paymentMethods.find(p => p.name === 'UPI QR');
     const merchantUPI = upiMethod ? upiMethod.upi_id : 'cafe@ybl';
     return `upi://pay?pa=${merchantUPI}&pn=OdooCafe&am=${totals.total.toFixed(2)}&cu=INR&tn=OrderRef-${Date.now().toString().slice(-6)}`;
@@ -843,14 +828,12 @@ function CashierTerminal({ user, onLogout }) {
 
       let res;
       if (activeOrderId) {
-        // Update draft order to Paid
         res = await fetch(`/api/orders/${activeOrderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
       } else {
-        // Create new order as Paid
         res = await fetch('/api/orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -900,10 +883,9 @@ function CashierTerminal({ user, onLogout }) {
     setShowPaymentModal(false);
     setIsPaidSuccess(false);
     setCreatedOrderDetails(null);
-    loadPOSData(); // Reload stock
+    loadPOSData(); 
   };
 
-  // Render open session loader
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center">
@@ -915,7 +897,6 @@ function CashierTerminal({ user, onLogout }) {
     );
   }
 
-  // Session Open Required screen
   if (!activeSession) {
     return (
       <div className="min-h-screen bg-[#f8f9fa] text-[#191c1d] flex items-center justify-center font-sans p-6">
@@ -962,10 +943,8 @@ function CashierTerminal({ user, onLogout }) {
     );
   }
 
-  // Active cashier terminal layout
   return (
     <div className="bg-[#f8f9fa] text-[#191c1d] overflow-hidden h-screen flex flex-col font-sans">
-      {/* Top Header */}
       <header className="sticky top-0 z-50 flex justify-between items-center w-full px-6 bg-white border-b border-[#E9ECEF] h-16 shrink-0">
         <div className="flex items-center gap-8">
           <span className="text-xl font-extrabold text-[#714B67] tracking-tight">Odoo Cafe POS</span>
@@ -994,7 +973,6 @@ function CashierTerminal({ user, onLogout }) {
             />
           </div>
 
-          {/* Table Selector Trigger */}
           <button 
             onClick={openTableSelect}
             className="flex items-center gap-2 px-3 py-2 bg-[#714B67]/10 hover:bg-[#714B67]/15 text-[#714B67] rounded-xl text-xs font-bold transition-all border border-[#714B67]/10"
@@ -1003,7 +981,6 @@ function CashierTerminal({ user, onLogout }) {
             <span>Floor Grid</span>
           </button>
 
-          {/* Notification Stock Warning */}
           <button 
             className="p-2 text-gray-500 hover:bg-[#f3f4f5] rounded-full transition-colors relative"
             onClick={() => setStockAlerts([])}
@@ -1014,7 +991,6 @@ function CashierTerminal({ user, onLogout }) {
             )}
           </button>
 
-          {/* Close Register */}
           <button 
             onClick={() => {
               fetchSessionSummary(activeSession.id);
@@ -1028,7 +1004,6 @@ function CashierTerminal({ user, onLogout }) {
         </div>
       </header>
 
-      {/* Low Stock Banner */}
       {stockAlerts.length > 0 && (
         <div className="bg-red-50 border-b border-red-200 px-6 py-2 flex items-center justify-between text-xs text-[#ba1a1a]">
           <div className="flex items-center gap-2 font-semibold">
@@ -1039,12 +1014,8 @@ function CashierTerminal({ user, onLogout }) {
         </div>
       )}
 
-      {/* POS Working Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Side: Product Grid and Categories */}
         <main className="flex-1 flex flex-col min-w-0 bg-[#f8f9fa]">
-          
-          {/* Category Selector */}
           <div className="h-16 shrink-0 border-b border-[#E9ECEF] flex items-center px-6 gap-3 bg-white overflow-x-auto no-scrollbar">
             <button 
               onClick={() => setActiveCategory('all')}
@@ -1072,7 +1043,6 @@ function CashierTerminal({ user, onLogout }) {
             ))}
           </div>
 
-          {/* Product Grid */}
           <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
             {filteredProducts.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-400">
@@ -1118,9 +1088,7 @@ function CashierTerminal({ user, onLogout }) {
           </div>
         </main>
 
-        {/* Right Side: Order Sidebar */}
         <aside className="w-[380px] shrink-0 bg-white border-l border-[#E9ECEF] flex flex-col shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.03)]">
-          {/* Header/Guest details */}
           <div className="p-4 border-b border-[#E9ECEF] flex justify-between items-center bg-[#f8f9fa]">
             <div>
               <div className="flex items-center gap-1.5">
@@ -1153,7 +1121,6 @@ function CashierTerminal({ user, onLogout }) {
               </div>
             </div>
 
-            {/* Customer select icon */}
             <button 
               onClick={() => {
                 loadPOSData();
@@ -1170,7 +1137,6 @@ function CashierTerminal({ user, onLogout }) {
             </button>
           </div>
 
-          {/* Cart list */}
           <div className="flex-grow overflow-y-auto p-4 space-y-3 custom-scrollbar">
             {cart.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60">
@@ -1219,7 +1185,6 @@ function CashierTerminal({ user, onLogout }) {
             )}
           </div>
 
-          {/* Coupon Input Box */}
           {cart.length > 0 && (
             <div className="px-4 py-3 border-t border-[#E9ECEF] bg-white space-y-2">
               {appliedCoupon ? (
@@ -1248,7 +1213,6 @@ function CashierTerminal({ user, onLogout }) {
             </div>
           )}
 
-          {/* Notes */}
           {cart.length > 0 && (
             <div className="px-4 py-2 border-t border-b border-[#E9ECEF] bg-white">
               <input 
@@ -1261,7 +1225,6 @@ function CashierTerminal({ user, onLogout }) {
             </div>
           )}
 
-          {/* Totals panel */}
           <div className="p-6 bg-[#f8f9fa] border-t border-[#E9ECEF] space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-gray-500 font-bold">
@@ -1327,7 +1290,6 @@ function CashierTerminal({ user, onLogout }) {
         </aside>
       </div>
 
-      {/* 1. TABLE FLOOR GRID POPUP */}
       {showTableModal && (
         <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 w-full max-w-2xl shadow-2xl border border-gray-100 flex flex-col h-[500px]">
@@ -1339,7 +1301,6 @@ function CashierTerminal({ user, onLogout }) {
               <button className="text-gray-400 hover:text-gray-800 font-bold" onClick={() => setShowTableModal(false)}>Close</button>
             </div>
 
-            {/* Floor Select tab bar */}
             <div className="flex bg-[#f3f4f5] p-1 rounded-xl gap-1 mb-4 shrink-0 border border-gray-100">
               {['Ground Floor', 'First Floor', 'Terrace'].map(floorName => (
                 <button
@@ -1354,7 +1315,6 @@ function CashierTerminal({ user, onLogout }) {
               ))}
             </div>
 
-            {/* Grid of Tables */}
             <div className="flex-grow overflow-y-auto custom-scrollbar p-1">
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                 {tables
@@ -1387,7 +1347,6 @@ function CashierTerminal({ user, onLogout }) {
         </div>
       )}
 
-      {/* 2. CUSTOMER LINKAGE MODAL */}
       {showCustomerModal && (
         <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 flex flex-col h-[520px]">
@@ -1396,10 +1355,7 @@ function CashierTerminal({ user, onLogout }) {
               <button className="text-gray-400 hover:text-gray-800 font-bold" onClick={() => setShowCustomerModal(false)}>Close</button>
             </div>
 
-            {/* Custom tabs for selecting / adding new */}
             <div className="flex-grow flex flex-col overflow-hidden space-y-4">
-              
-              {/* Search bar */}
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input 
@@ -1411,7 +1367,6 @@ function CashierTerminal({ user, onLogout }) {
                 />
               </div>
 
-              {/* List of existing */}
               <div className="flex-1 overflow-y-auto border border-gray-100 rounded-2xl p-2 custom-scrollbar">
                 {filteredCustomers.length === 0 ? (
                   <p className="text-xs text-gray-400 text-center py-8">No customers found</p>
@@ -1439,7 +1394,6 @@ function CashierTerminal({ user, onLogout }) {
                 )}
               </div>
 
-              {/* Create new form toggle */}
               <div className="border-t pt-4">
                 <p className="font-bold text-xs text-[#714B67] mb-3">Add New Customer Profile</p>
                 <form onSubmit={handleCreateCustomer} className="space-y-2.5">
@@ -1476,18 +1430,14 @@ function CashierTerminal({ user, onLogout }) {
                   </div>
                 </form>
               </div>
-
             </div>
           </div>
         </div>
       )}
 
-      {/* 3. CHECKOUT PAYMENT REGISTER MODAL */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[560px]">
-            
-            {/* Modal Left: payment options selection */}
             <div className="w-full md:w-5/12 bg-[#f8f9fa] border-r border-[#E9ECEF] p-6 flex flex-col justify-between">
               <div className="space-y-4">
                 <div>
@@ -1540,7 +1490,6 @@ function CashierTerminal({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Total Due Summary in Checkout */}
               <div className="pt-6 border-t border-gray-200">
                 <div className="flex justify-between items-center text-xs text-gray-500 font-bold mb-1">
                   <span>Gross Order Total:</span>
@@ -1552,7 +1501,6 @@ function CashierTerminal({ user, onLogout }) {
               </div>
             </div>
 
-            {/* Modal Right: dynamic keypad / QR renderer / Confirmation */}
             <div className="flex-1 p-6 flex flex-col justify-between">
               <div className="flex justify-between items-center shrink-0 border-b pb-3">
                 <h4 className="font-bold text-sm text-gray-900">{paymentMethod} details</h4>
@@ -1566,8 +1514,6 @@ function CashierTerminal({ user, onLogout }) {
               </div>
 
               <div className="flex-grow flex flex-col items-center justify-center p-4">
-                
-                {/* 1. IF SUCCESS: SHOW RECEIPT LAYOUT */}
                 {isPaidSuccess ? (
                   <div className="w-full max-w-sm border border-[#E9ECEF] rounded-2xl bg-white p-5 space-y-4 shadow-sm text-center">
                     <div className="w-12 h-12 bg-green-500/10 text-green-600 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -1576,7 +1522,6 @@ function CashierTerminal({ user, onLogout }) {
                     <h5 className="font-extrabold text-sm text-gray-900">Transaction Complete!</h5>
                     <p className="text-[11px] text-gray-500">Order successfully logged and processed.</p>
                     
-                    {/* Tiny styled receipt summary */}
                     <div className="text-left bg-[#f8f9fa] border rounded-xl p-3.5 space-y-1.5 text-xs font-semibold">
                       <div className="flex justify-between font-bold border-b pb-1 text-gray-700">
                         <span>Odoo Cafe Receipt</span>
@@ -1596,7 +1541,6 @@ function CashierTerminal({ user, onLogout }) {
                       </div>
                     </div>
 
-                    {/* Email Receipt form */}
                     <form onSubmit={handleEmailReceipt} className="space-y-2">
                       <div className="flex gap-2">
                         <input 
@@ -1634,7 +1578,6 @@ function CashierTerminal({ user, onLogout }) {
                   </div>
                 ) : (
                   <>
-                    {/* 2. CASH DRAWER REGISTER: KEYPAD & INPUTS */}
                     {paymentMethod === 'Cash' && (
                       <div className="flex flex-col items-center w-full max-w-sm space-y-4">
                         <div className="text-center">
@@ -1644,7 +1587,6 @@ function CashierTerminal({ user, onLogout }) {
                           </div>
                         </div>
 
-                        {/* Numeric Keypad grid */}
                         <div className="grid grid-cols-3 gap-2 w-full max-w-[280px]">
                           {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0'].map((num) => (
                             <button 
@@ -1663,7 +1605,6 @@ function CashierTerminal({ user, onLogout }) {
                           </button>
                         </div>
 
-                        {/* Calculate Change due */}
                         <div className="text-center font-bold text-xs">
                           {parseFloat(paidAmount) >= totals.total ? (
                             <span className="text-green-600">
@@ -1678,7 +1619,6 @@ function CashierTerminal({ user, onLogout }) {
                       </div>
                     )}
 
-                    {/* 3. CARD TERMINAL ROUTE: REF CODE ENTRY */}
                     {paymentMethod === 'Card' && (
                       <div className="text-center space-y-5 max-w-xs">
                         <div className="w-12 h-12 bg-blue-500/10 text-blue-600 rounded-full flex items-center justify-center mx-auto">
@@ -1698,11 +1638,9 @@ function CashierTerminal({ user, onLogout }) {
                       </div>
                     )}
 
-                    {/* 4. UPI QR ROUTE: DYNAMIC SCANNABLE IMAGE */}
                     {paymentMethod === 'UPI QR' && (
                       <div className="text-center space-y-4">
                         <p className="font-bold text-xs text-gray-700">Scan QR Code using UPI Apps</p>
-                        
                         <div className="w-[180px] h-[180px] bg-white border border-[#E9ECEF] rounded-2xl flex items-center justify-center p-2.5 mx-auto">
                           <img 
                             alt="UPI QR Code Payment" 
@@ -1710,7 +1648,6 @@ function CashierTerminal({ user, onLogout }) {
                             className="w-full h-full"
                           />
                         </div>
-
                         <div>
                           <p className="text-xs font-black text-gray-900">${totals.total.toFixed(2)}</p>
                           <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">Scans instantly using PhonePe, GPay, Paytm</p>
@@ -1719,10 +1656,8 @@ function CashierTerminal({ user, onLogout }) {
                     )}
                   </>
                 )}
-
               </div>
 
-              {/* Confirm Bottom Trigger */}
               {!isPaidSuccess && (
                 <button
                   onClick={confirmCheckout}
@@ -1732,12 +1667,10 @@ function CashierTerminal({ user, onLogout }) {
                 </button>
               )}
             </div>
-
           </div>
         </div>
       )}
 
-      {/* 4. CLOSING REGISTER MODAL (Shift closure summary) */}
       {showCloseModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 flex flex-col space-y-6">
@@ -1746,7 +1679,6 @@ function CashierTerminal({ user, onLogout }) {
               <p className="text-xs text-gray-500 mt-1">Verify shift balance counts prior to closure.</p>
             </div>
 
-            {/* Shift metrics */}
             <div className="bg-[#f8f9fa] border border-[#E9ECEF] rounded-2xl p-4 space-y-2.5 text-xs font-bold text-gray-600">
               <div className="flex justify-between">
                 <span>Start cash balance:</span>
@@ -1762,7 +1694,6 @@ function CashierTerminal({ user, onLogout }) {
               </div>
             </div>
 
-            {/* Ending balance input */}
             <div className="space-y-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500">Actual Closing cash balance ($)</label>
               <input 
@@ -1792,7 +1723,6 @@ function CashierTerminal({ user, onLogout }) {
           </div>
         </div>
       )}
-
     </div>
   );
 }

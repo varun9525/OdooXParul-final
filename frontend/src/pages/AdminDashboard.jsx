@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 function AdminDashboard({ user, onLogout }) {
-  const [activeTab, setActiveTab] = useState('overview'); // overview, products, categories, tables, promotions, payments, employees, reports
+  const [activeTab, setActiveTab] = useState('overview'); 
   const [stats, setStats] = useState({
     todaySales: 0,
     ordersToday: 0,
@@ -46,12 +46,11 @@ function AdminDashboard({ user, onLogout }) {
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [employees, setEmployees] = useState([]);
   
-  // Custom Report state
   const [reportPeriod, setReportPeriod] = useState('Today');
   const [reportData, setReportData] = useState(null);
   const [loadingReport, setLoadingReport] = useState(false);
 
-  // Form states (Add/Edit modals)
+  // Form states
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [prodName, setProdName] = useState('');
@@ -81,7 +80,7 @@ function AdminDashboard({ user, onLogout }) {
 
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [promoName, setPromoName] = useState('');
-  const [promoType, setPromoType] = useState('product'); // product, order
+  const [promoType, setPromoType] = useState('product'); 
   const [promoMinQty, setPromoMinQty] = useState('0');
   const [promoMinAmount, setPromoMinAmount] = useState('0');
   const [promoDiscType, setPromoDiscType] = useState('percent');
@@ -94,7 +93,6 @@ function AdminDashboard({ user, onLogout }) {
   const [empPassword, setEmpPassword] = useState('');
   const [empRole, setEmpRole] = useState('cashier');
 
-  // Load stats & entities
   const fetchDashboardData = async () => {
     try {
       const statsRes = await fetch('/api/dashboard/stats');
@@ -510,11 +508,7 @@ function AdminDashboard({ user, onLogout }) {
 
   return (
     <div className="bg-[#f8f9fa] text-[#191c1d] overflow-x-hidden min-h-screen font-sans flex flex-col">
-      
-      {/* Dashboard App Shell */}
       <div className="flex flex-1">
-        
-        {/* Navigation Sidebar */}
         <aside className="hidden lg:flex flex-col h-screen w-64 fixed left-0 top-0 bg-white border-r border-[#E9ECEF] py-6 space-y-3 z-50 shrink-0">
           <div className="px-6 mb-6">
             <div className="flex items-center space-x-3">
@@ -564,10 +558,7 @@ function AdminDashboard({ user, onLogout }) {
           </div>
         </aside>
 
-        {/* Main Content Pane */}
         <main className="lg:ml-64 flex-grow min-h-screen flex flex-col bg-[#f8f9fa] w-full">
-          
-          {/* Header */}
           <header className="sticky top-0 z-40 flex justify-between items-center w-full px-8 py-4 bg-white border-b border-[#E9ECEF]">
             <h2 className="text-sm font-black text-[#714B67] uppercase tracking-widest">
               Manager Panel &bull; {activeTab.replace('_', ' ')}
@@ -584,16 +575,10 @@ function AdminDashboard({ user, onLogout }) {
             </div>
           </header>
 
-          {/* Active Panel View */}
           <div className="p-8 max-w-[1600px] mx-auto w-full space-y-8 flex-grow">
-            
-            {/* ================== TAB: OVERVIEW ================== */}
             {activeTab === 'overview' && (
               <div className="space-y-8 animate-in fade-in duration-200">
-                {/* KPI Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  
-                  {/* Revenue Card */}
                   <div className="bg-white border border-[#E9ECEF] p-6 rounded-2xl relative overflow-hidden shadow-sm">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Today Sales Revenue</p>
                     <h3 className="text-2xl font-black text-gray-900">${(stats.todaySales || 0).toFixed(2)}</h3>
@@ -603,14 +588,12 @@ function AdminDashboard({ user, onLogout }) {
                     </div>
                   </div>
 
-                  {/* Orders Card */}
                   <div className="bg-white border border-[#E9ECEF] p-6 rounded-2xl relative overflow-hidden shadow-sm">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Orders Processed</p>
                     <h3 className="text-2xl font-black text-gray-900">{stats.ordersToday || 0}</h3>
                     <p className="text-[10px] text-gray-400 font-bold mt-3 uppercase">From Cashier Registers</p>
                   </div>
 
-                  {/* Top Product Card */}
                   <div className="bg-white border border-[#E9ECEF] p-6 rounded-2xl relative overflow-hidden shadow-sm">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Top Selling Item</p>
                     <h3 className="text-xl font-black text-gray-900 truncate">
@@ -621,7 +604,6 @@ function AdminDashboard({ user, onLogout }) {
                     </p>
                   </div>
 
-                  {/* Inventory Alert Card */}
                   <div className={`border p-6 rounded-2xl relative overflow-hidden shadow-sm transition-colors ${
                     stats.stockAlerts?.length > 0 ? 'bg-red-50/50 border-red-200 text-red-700' : 'bg-white border-[#E9ECEF]'
                   }`}>
@@ -635,9 +617,7 @@ function AdminDashboard({ user, onLogout }) {
                   </div>
                 </div>
 
-                {/* Sales Chart and Recent Transactions */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Custom CSS Chart */}
                   <div className="lg:col-span-2 bg-white border border-[#E9ECEF] p-6 rounded-2xl h-[420px] flex flex-col justify-between shadow-sm">
                     <div>
                       <h4 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Weekly Revenue Tracking</h4>
@@ -666,7 +646,6 @@ function AdminDashboard({ user, onLogout }) {
                     </div>
                   </div>
 
-                  {/* Recent Transactions List */}
                   <div className="bg-white border border-[#E9ECEF] rounded-2xl overflow-hidden flex flex-col h-[420px] shadow-sm">
                     <div className="p-6 border-b border-[#E9ECEF] shrink-0">
                       <h4 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Recent Invoices</h4>
@@ -718,20 +697,19 @@ function AdminDashboard({ user, onLogout }) {
               </div>
             )}
 
-            {/* ================== TAB: PRODUCTS ================== */}
             {activeTab === 'products' && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-[#E9ECEF] shadow-sm">
                   <div>
-                    <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Product Inventory Catalog</h3>
+                    <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Product Catalog</h3>
                     <p className="text-xs text-gray-400 font-bold">Configure recipe listings, prices, tax percentages</p>
                   </div>
                   <button 
                     onClick={() => { resetProductForm(); setEditingProduct(null); setShowProductModal(true); }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[#714B67] hover:bg-[#57344f] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-purple-950/10"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#714B67] hover:bg-[#57344f] text-white rounded-xl text-xs font-bold transition-all shadow-md"
                   >
                     <Plus size={14} />
-                    <span>Add New Recipe</span>
+                    <span>Add Product</span>
                   </button>
                 </div>
 
@@ -768,10 +746,8 @@ function AdminDashboard({ user, onLogout }) {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-[#714B67] font-bold">${prod.price.toFixed(2)}</td>
-                          <td className="px-6 py-4">
-                            <span className={`font-bold ${prod.stock <= 5 ? 'text-red-600' : 'text-gray-600'}`}>
-                              {prod.stock} {prod.uom}
-                            </span>
+                          <td className="px-6 py-4 text-gray-600 font-bold">
+                            {prod.stock} {prod.uom}
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex justify-end gap-2">
@@ -797,17 +773,16 @@ function AdminDashboard({ user, onLogout }) {
               </div>
             )}
 
-            {/* ================== TAB: CATEGORIES ================== */}
             {activeTab === 'categories' && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-[#E9ECEF] shadow-sm">
                   <div>
-                    <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Item Categories Manager</h3>
+                    <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Item Categories</h3>
                     <p className="text-xs text-gray-400 font-bold">Configure Odoo color palettes for registers</p>
                   </div>
                   <button 
                     onClick={() => { setEditingCategory(null); setCatName(''); setCatColor('#714B67'); setShowCategoryModal(true); }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[#714B67] hover:bg-[#57344f] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-purple-950/10"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#714B67] hover:bg-[#57344f] text-white rounded-xl text-xs font-bold transition-all shadow-md"
                   >
                     <Plus size={14} />
                     <span>New Category</span>
@@ -816,10 +791,7 @@ function AdminDashboard({ user, onLogout }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {categories.map((cat) => (
-                    <div 
-                      key={cat.id} 
-                      className="bg-white border border-[#E9ECEF] rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between"
-                    >
+                    <div key={cat.id} className="bg-white border border-[#E9ECEF] rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-6 h-6 rounded-full border shadow-sm shrink-0" style={{ backgroundColor: cat.color }}></div>
                         <h4 className="font-bold text-sm text-gray-900">{cat.name}</h4>
@@ -846,13 +818,12 @@ function AdminDashboard({ user, onLogout }) {
               </div>
             )}
 
-            {/* ================== TAB: TABLES ================== */}
             {activeTab === 'tables' && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-[#E9ECEF] shadow-sm">
                   <div>
-                    <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Restaurant Floor Plan</h3>
-                    <p className="text-xs text-gray-400 font-bold">Configure floor tables and seat layouts</p>
+                    <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Floor Plan</h3>
+                    <p className="text-xs text-gray-400 font-bold">Configure zone tables and seats</p>
                   </div>
                   <button 
                     onClick={() => { setEditingTable(null); setTableNumber(''); setTableSeats('4'); setTableFloor('Ground Floor'); setShowTableModal(true); }}
@@ -898,11 +869,8 @@ function AdminDashboard({ user, onLogout }) {
               </div>
             )}
 
-            {/* ================== TAB: PROMOTIONS ================== */}
             {activeTab === 'promotions' && (
               <div className="space-y-8 animate-in fade-in duration-200">
-                
-                {/* Section A: Coupons */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-[#E9ECEF] shadow-sm">
                     <div>
@@ -933,7 +901,6 @@ function AdminDashboard({ user, onLogout }) {
                   </div>
                 </div>
 
-                {/* Section B: Auto-Promotions */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-[#E9ECEF] shadow-sm">
                     <div>
@@ -999,11 +966,9 @@ function AdminDashboard({ user, onLogout }) {
                     </table>
                   </div>
                 </div>
-
               </div>
             )}
 
-            {/* ================== TAB: PAYMENTS ================== */}
             {activeTab === 'payments' && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="bg-white p-5 rounded-2xl border border-[#E9ECEF] shadow-sm">
@@ -1026,7 +991,6 @@ function AdminDashboard({ user, onLogout }) {
                         <p className="text-[10px] text-gray-400 font-bold">SYSTEM INTEGRATED GATEWAY</p>
                       </div>
 
-                      {/* UPI Field */}
                       {pm.name === 'UPI QR' && (
                         <div className="space-y-1.5">
                           <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Merchant UPI ID Address</label>
@@ -1056,13 +1020,12 @@ function AdminDashboard({ user, onLogout }) {
               </div>
             )}
 
-            {/* ================== TAB: EMPLOYEES ================== */}
             {activeTab === 'employees' && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-[#E9ECEF] shadow-sm">
                   <div>
                     <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Baristas & Shift Operators</h3>
-                    <p className="text-xs text-gray-400 font-bold">Configure employee roles and system credentials</p>
+                    <p className="text-xs text-gray-400 font-bold">Configure employee roles and credentials</p>
                   </div>
                   <button 
                     onClick={() => { setEmpName(''); setEmpUsername(''); setEmpPassword(''); setShowEmployeeModal(true); }}
@@ -1095,16 +1058,14 @@ function AdminDashboard({ user, onLogout }) {
               </div>
             )}
 
-            {/* ================== TAB: REPORTS ================== */}
             {activeTab === 'reports' && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center bg-white p-6 rounded-2xl border border-[#E9ECEF] shadow-sm gap-4">
                   <div>
-                    <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Shift Sales analytics</h3>
-                    <p className="text-xs text-gray-400 font-bold">Generate report breakdowns and export spreadsheet files</p>
+                    <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Shift Sales Analytics</h3>
+                    <p className="text-xs text-gray-400 font-bold">Generate report breakdowns and export files</p>
                   </div>
                   
-                  {/* Period filter */}
                   <div className="flex gap-2 bg-[#f3f4f5] p-1 rounded-xl border">
                     {['Today', 'This Week', 'This Month'].map(p => (
                       <button
@@ -1127,8 +1088,6 @@ function AdminDashboard({ user, onLogout }) {
                 ) : (
                   reportData && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      
-                      {/* Metric cards */}
                       <div className="space-y-6">
                         <div className="bg-[#714B67] text-white rounded-2xl p-6 shadow-sm">
                           <p className="text-[10px] font-bold uppercase tracking-wider opacity-85">Gross Shift Revenue</p>
@@ -1147,7 +1106,6 @@ function AdminDashboard({ user, onLogout }) {
                         </button>
                       </div>
 
-                      {/* Top Selling lists */}
                       <div className="lg:col-span-2 bg-white border rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                         <div>
                           <h4 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider mb-4">Top Selling Items in Period</h4>
@@ -1164,19 +1122,15 @@ function AdminDashboard({ user, onLogout }) {
                           </div>
                         </div>
                       </div>
-
                     </div>
                   )
                 )}
               </div>
             )}
-
           </div>
-
         </main>
       </div>
 
-      {/* ================== MODAL: PRODUCTS ADD/EDIT ================== */}
       {showProductModal && (
         <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[60] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -1386,7 +1340,6 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ================== MODAL: CATEGORIES ADD/EDIT ================== */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <form onSubmit={handleCategorySubmit} className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 space-y-4">
@@ -1438,7 +1391,6 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ================== MODAL: TABLES ADD/EDIT ================== */}
       {showTableModal && (
         <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <form onSubmit={handleTableSubmit} className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 space-y-4">
@@ -1501,7 +1453,6 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ================== MODAL: COUPONS ADD ================== */}
       {showCouponModal && (
         <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <form onSubmit={handleCouponSubmit} className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 space-y-4">
@@ -1565,7 +1516,6 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ================== MODAL: PROMOTIONS ADD ================== */}
       {showPromoModal && (
         <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <form onSubmit={handlePromoSubmit} className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 space-y-4">
@@ -1681,7 +1631,6 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ================== MODAL: EMPLOYEES ADD ================== */}
       {showEmployeeModal && (
         <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <form onSubmit={handleEmployeeSubmit} className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 space-y-4">
@@ -1750,7 +1699,6 @@ function AdminDashboard({ user, onLogout }) {
           </form>
         </div>
       )}
-
     </div>
   );
 }
