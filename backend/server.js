@@ -772,6 +772,42 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
+app.post('/api/auth/forgot-password', (req, res) => {
+  const { usernameOrEmail, newPassword } = req.body;
+
+  if (!usernameOrEmail || !newPassword) {
+    return res.status(400).json({ error: 'Username/email and new password are required' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+  }
+
+  const normalizedUsername = usernameOrEmail.includes('@')
+    ? usernameOrEmail.split('@')[0]
+    : usernameOrEmail;
+
+  db.get(
+    'SELECT id, archived FROM users WHERE username = ? OR username = ?',
+    [usernameOrEmail, normalizedUsername],
+    (err, user) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      if (!user) return res.status(404).json({ error: 'Account not found' });
+      if (user.archived) return res.status(403).json({ error: 'Account archived' });
+
+      const hashedPassword = bcrypt.hashSync(newPassword, 10);
+      db.run(
+        'UPDATE users SET password = ? WHERE id = ?',
+        [hashedPassword, user.id],
+        function (updateErr) {
+          if (updateErr) return res.status(500).json({ error: 'Could not update password' });
+          res.json({ success: true, message: 'Password updated successfully' });
+        }
+      );
+    }
+  );
+});
+
 // Socket.io Connection
 const activeSockets = new Map();
 

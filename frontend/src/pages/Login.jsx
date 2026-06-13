@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LogIn } from 'lucide-react';
 
 function Login({ onLogin }) {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
   const [isSignup, setIsSignup] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -12,10 +13,19 @@ function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotUsernameOrEmail, setForgotUsernameOrEmail] = useState('');
+  const [forgotPassword, setForgotPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState(null);
+  const [forgotError, setForgotError] = useState(null);
 
   const handleRoleChange = (selectedRole) => {
     setRole(selectedRole);
   };
+
+  const normalizeUsername = (value) => (value.includes('@') ? value.split('@')[0] : value);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,7 +35,7 @@ function Login({ onLogin }) {
 
     if (isSignup) {
       try {
-        const response = await fetch('/api/auth/signup', {
+        const response = await fetch(`${apiBaseUrl}/api/auth/signup`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -56,18 +66,14 @@ function Login({ onLogin }) {
         setLoading(false);
       }
     } else {
-      const normalizedUsername = username.includes('@') 
-        ? username.split('@')[0] 
-        : username;
-
       try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            username: normalizedUsername,
+            username: normalizeUsername(username),
             password,
             role,
           }),
@@ -85,6 +91,50 @@ function Login({ onLogin }) {
       } finally {
         setLoading(false);
       }
+    }
+  };
+
+  const handleForgotPasswordSubmit = async (e) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotError(null);
+    setForgotMessage(null);
+
+    if (forgotPassword !== forgotConfirmPassword) {
+      setForgotError('Passwords do not match');
+      setForgotLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          usernameOrEmail: forgotUsernameOrEmail,
+          newPassword: forgotPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not reset password');
+      }
+
+      setForgotMessage(data.message || 'Password updated successfully');
+      setUsername(normalizeUsername(forgotUsernameOrEmail));
+      setPassword('');
+      setForgotUsernameOrEmail('');
+      setForgotPassword('');
+      setForgotConfirmPassword('');
+      setShowForgotPassword(false);
+    } catch (err) {
+      setForgotError(err.message);
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -136,7 +186,6 @@ function Login({ onLogin }) {
                   ? 'Sign up to register a new account.' 
                   : 'Please enter your credentials to access the terminal.'}
               </p>
-
             </div>
 
             {signupSuccess && (
@@ -236,7 +285,18 @@ function Login({ onLogin }) {
                 <div className="flex justify-between items-center">
                   <label className="text-sm font-semibold text-gray-700" htmlFor="password">Password</label>
                   {!isSignup && (
-                    <a className="text-sm font-semibold text-[#714B67] hover:underline" href="#forgot">Forgot Password?</a>
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-[#714B67] hover:underline"
+                      onClick={() => {
+                        setShowForgotPassword(true);
+                        setForgotError(null);
+                        setForgotMessage(null);
+                        setForgotUsernameOrEmail(username);
+                      }}
+                    >
+                      Forgot Password?
+                    </button>
                   )}
                 </div>
                 <div className="relative group">
@@ -332,6 +392,102 @@ function Login({ onLogin }) {
               </div>
             </div>
           </div>
+
+          {forgotMessage && !showForgotPassword && (
+            <div className="absolute top-6 left-0 right-0 mx-auto w-full max-w-md rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm">
+              {forgotMessage}
+            </div>
+          )}
+
+          {showForgotPassword && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 px-4">
+              <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">Reset password</h3>
+                    <p className="mt-1 text-sm text-gray-600">Enter your username or email and choose a new password.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-gray-500 hover:text-gray-900"
+                    onClick={() => setShowForgotPassword(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {forgotError && (
+                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-[#ba1a1a]">
+                    {forgotError}
+                  </div>
+                )}
+
+                <form className="space-y-4" onSubmit={handleForgotPasswordSubmit}>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 block" htmlFor="forgot-username">
+                      Username or Email
+                    </label>
+                    <input
+                      id="forgot-username"
+                      type="text"
+                      className="w-full rounded-lg border border-[#E9ECEF] bg-[#f3f4f5] px-4 py-3 text-gray-700 transition-all focus:border-[#714B67] focus:outline-none focus:ring-2 focus:ring-[#714B67]/20"
+                      value={forgotUsernameOrEmail}
+                      onChange={(e) => setForgotUsernameOrEmail(e.target.value)}
+                      placeholder="admin or admin@example.com"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 block" htmlFor="forgot-password">
+                      New Password
+                    </label>
+                    <input
+                      id="forgot-password"
+                      type="password"
+                      className="w-full rounded-lg border border-[#E9ECEF] bg-[#f3f4f5] px-4 py-3 text-gray-700 transition-all focus:border-[#714B67] focus:outline-none focus:ring-2 focus:ring-[#714B67]/20"
+                      value={forgotPassword}
+                      onChange={(e) => setForgotPassword(e.target.value)}
+                      placeholder="At least 6 characters"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 block" htmlFor="forgot-confirm-password">
+                      Confirm New Password
+                    </label>
+                    <input
+                      id="forgot-confirm-password"
+                      type="password"
+                      className="w-full rounded-lg border border-[#E9ECEF] bg-[#f3f4f5] px-4 py-3 text-gray-700 transition-all focus:border-[#714B67] focus:outline-none focus:ring-2 focus:ring-[#714B67]/20"
+                      value={forgotConfirmPassword}
+                      onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                      placeholder="Repeat the new password"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      className="flex-1 rounded-xl border border-gray-200 px-4 py-3 font-semibold text-gray-700 hover:bg-gray-50"
+                      onClick={() => setShowForgotPassword(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 rounded-xl bg-[#714B67] px-4 py-3 font-semibold text-white hover:bg-[#57344f] disabled:opacity-60"
+                      disabled={forgotLoading}
+                    >
+                      {forgotLoading ? 'Updating...' : 'Reset Password'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
           <div className="absolute bottom-6 left-0 right-0 text-center lg:text-left lg:px-12 opacity-20">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Odoo SA © 2026</p>
